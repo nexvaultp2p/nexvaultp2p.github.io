@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/auth.css" />
+</head>
+<body>
+<div class="auth-layout">
+  <!-- Left: Form -->
+  <div class="auth-panel-left">
+    <a href="../index.html" class="auth-brand">
+      <div class="logo-mark">N</div>
+      <span class="logo-text">Nex<span>Vault</span></span>
+    </a>
+    <div class="auth-form-wrap">
+      <h1>Welcome back</h1>
+      <p>Sign in to your account to continue trading.</p>
+
+      <form id="loginForm" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="loginId">Email or Username <span>*</span></label>
+          <div class="input-group">
+            <span class="input-icon">👤</span>
+            <input type="text" id="loginId" class="form-control" placeholder="you@email.com or username" autocomplete="username" />
+          </div>
+          <div class="form-error" id="loginId-err"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="loginPass">Password <span>*</span></label>
+          <div class="password-wrapper">
+            <input type="password" id="loginPass" class="form-control" placeholder="Your password" autocomplete="current-password" />
+            <button type="button" class="password-toggle" data-target="loginPass">👁️</button>
+          </div>
+          <div class="form-error" id="loginPass-err"></div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-bottom:20px;">
+          <a href="forgot-password.html" style="font-size:13px;">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
+          Sign In
+        </button>
+
+        <div class="auth-switch">
+          Don't have an account? <a href="signup.html">Create one</a>
+        </div>
+      </form>
+    </div>
+
+    <div style="margin-top:auto;padding-top:24px;">
+      <p style="font-size:12px;color:var(--text-muted);line-height:1.6;">
+        By signing in you agree to our <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.
+      </p>
+    </div>
+  </div>
+
+  <!-- Right: Visual -->
+  <div class="auth-panel-right">
+    <div class="auth-right-content">
+      <span class="auth-illustration">🔐</span>
+      <h2>Secure, Manual &amp; Trusted</h2>
+      <p>Every transaction is manually reviewed by our team. No automated mistakes — just reliable human-backed exchange.</p>
+      <div class="auth-features">
+        <div class="auth-feature">
+          <div class="auth-feature-icon">🇮🇳</div>
+          <div class="auth-feature-text">
+            <h4>India — INR Exchange</h4>
+            <p>PhonePe, UPI, Bank Transfer supported</p>
+          </div>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon">🇳🇵</div>
+          <div class="auth-feature-text">
+            <h4>Nepal — NPR Exchange</h4>
+            <p>eSewa, FonePay, Khalti, Bank supported</p>
+          </div>
+        </div>
+        <div class="auth-feature">
+          <div class="auth-feature-icon">💳</div>
+          <div class="auth-feature-text">
+            <h4>Virtual Visa Cards</h4>
+            <p>Preloaded cards for global online use</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script>
+onReady(() => {
+  // If already logged in, go to dashboard
+  if (Auth.getUser()) window.location.href = 'dashboard.html';
+
+  initPasswordToggles();
+
+  const form = document.getElementById('loginForm');
+  const btn = document.getElementById('loginBtn');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const idField = document.getElementById('loginId');
+    const passField = document.getElementById('loginPass');
+
+    let valid = true;
+    if (!Validator.validate(idField, Validator.rules.required)) valid = false;
+    if (!Validator.validate(passField, Validator.rules.required)) valid = false;
+
+    if (!valid) return;
+
+    // Mock login — accept any credentials
+    btn.innerHTML = '<div class="spinner"></div> Signing in...';
+    btn.disabled = true;
+
+    await new Promise(r => setTimeout(r, 1200));
+
+    const loginVal = idField.value.trim();
+    // Check demo admin
+    const isAdmin = loginVal === 'admin' || loginVal === 'admin@nexvault.com';
+
+    const mockUser = {
+      id: 'USR-' + Date.now(),
+      fullName: isAdmin ? 'NexVault Admin' : 'Demo User',
+      username: isAdmin ? 'admin' : loginVal.split('@')[0],
+      email: loginVal.includes('@') ? loginVal : loginVal + '@demo.com',
+      nationality: 'NP',
+      kycStatus: 'verified', // mock verified for demo flow
+      isAdmin,
+      joinDate: new Date().toISOString(),
+    };
+
+    Auth.setUser(mockUser);
+    Toast.success('Welcome back!', `Signed in as ${mockUser.username}`);
+
+    setTimeout(() => {
+      window.location.href = isAdmin ? 'admin.html' : 'dashboard.html';
+    }, 600);
+  });
+
+  // Live validation on blur
+  document.getElementById('loginId').addEventListener('blur', (e) => {
+    Validator.validate(e.target, Validator.rules.required);
+  });
+  document.getElementById('loginPass').addEventListener('blur', (e) => {
+    Validator.validate(e.target, Validator.rules.required);
+  });
+});
+</script>
+</body>
+</html>
