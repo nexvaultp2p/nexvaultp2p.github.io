@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — NexVault Admin</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .settings-grid { display:grid; grid-template-columns:220px 1fr; gap:24px; }
+    @media(max-width:800px){ .settings-grid { grid-template-columns:1fr; } }
+    .settings-nav { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:14px; padding:16px; height:fit-content; }
+    .settings-nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; color:var(--slate-400); cursor:pointer; transition:all .15s; border:none; background:none; width:100%; text-align:left; }
+    .settings-nav-item:hover { background:var(--navy-700); color:var(--slate-200); }
+    .settings-nav-item.active { background:rgba(212,163,66,.1); color:var(--gold-400); }
+    .section-card { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:16px; padding:24px; margin-bottom:20px; }
+    .section-title { font-size:15px; font-weight:700; color:var(--slate-100); margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; }
+    .rate-edit-row { display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--navy-700); gap:12px; flex-wrap:wrap; }
+    .rate-edit-row:last-child { border-bottom:none; }
+    .rate-pair { font-size:14px; color:var(--slate-300); font-weight:600; }
+    .rate-desc { font-size:12px; color:var(--slate-500); }
+    .rate-input-wrap { display:flex; align-items:center; gap:8px; }
+    .rate-input { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-100); padding:8px 12px; border-radius:8px; font-size:14px; font-family:'DM Mono',monospace; width:130px; font-weight:700; }
+    .rate-input:focus { outline:none; border-color:var(--gold-500); background:var(--navy-900); }
+    .account-card { background:var(--navy-700); border:1px solid var(--navy-600); border-radius:12px; padding:16px; margin-bottom:12px; }
+    .account-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .account-method { font-size:14px; font-weight:700; color:var(--slate-200); display:flex; align-items:center; gap:8px; }
+    .account-detail-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--navy-600); }
+    .account-detail-row:last-child { border-bottom:none; }
+    .account-detail-label { font-size:11px; color:var(--slate-500); text-transform:uppercase; letter-spacing:.04em; }
+    .account-detail-input { background:var(--navy-800); border:1px solid var(--navy-600); color:var(--slate-200); padding:5px 10px; border-radius:6px; font-size:13px; font-family:'DM Mono',monospace; min-width:200px; }
+    .account-detail-input:focus { outline:none; border-color:var(--gold-500); }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .toggle-row { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--navy-700); }
+    .toggle-row:last-child { border-bottom:none; }
+    .toggle-label { font-size:14px; color:var(--slate-300); font-weight:600; }
+    .toggle-desc { font-size:12px; color:var(--slate-500); margin-top:2px; }
+    .toggle-switch { position:relative; width:40px; height:22px; flex-shrink:0; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--navy-600);border-radius:22px;transition:.2s; }
+    .toggle-slider:before { position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:var(--slate-400);border-radius:50%;transition:.2s; }
+    input:checked + .toggle-slider { background:var(--gold-500); }
+    input:checked + .toggle-slider:before { transform:translateX(18px); background:var(--navy-950); }
+    .notification-row { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--navy-700); }
+    .notification-row:last-child { border-bottom:none; }
+    .wh-input { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-200); padding:8px 12px; border-radius:8px; font-size:13px; width:100%; font-family:'DM Mono',monospace; }
+    .wh-input:focus { outline:none; border-color:var(--gold-500); }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content" id="pageContent">
+
+      <div class="page-header">
+        <h1>Settings</h1>
+        <p>Manage exchange rates, payment accounts, and system preferences.</p>
+      </div>
+
+      <div class="settings-grid">
+        <!-- Nav -->
+        <div>
+          <div class="settings-nav">
+            <button class="settings-nav-item active" onclick="switchSection('rates')">💱 Exchange Rates</button>
+            <button class="settings-nav-item" onclick="switchSection('accounts-np')">🇳🇵 Nepal Accounts</button>
+            <button class="settings-nav-item" onclick="switchSection('accounts-in')">🇮🇳 India Accounts</button>
+            <button class="settings-nav-item" onclick="switchSection('crypto')">₿ Crypto Wallets</button>
+            <button class="settings-nav-item" onclick="switchSection('notifications')">🔔 Notifications</button>
+            <button class="settings-nav-item" onclick="switchSection('system')">⚙️ System</button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div>
+
+          <!-- Exchange Rates -->
+          <div class="tab-panel active" id="section-rates">
+            <div class="section-card">
+              <div class="section-title">
+                <span>💱 Exchange Rates</span>
+                <button class="btn btn-primary btn-sm" onclick="saveRates()">Save Rates</button>
+              </div>
+              <p style="font-size:13px;color:var(--slate-500);margin-bottom:16px;">These rates are shown to users when they initiate a transaction. Update them regularly to match market conditions.</p>
+              <div id="ratesForm">
+                ${[
+                  ['USD / NPR', '133.20', 'How many Nepalese Rupees per 1 USD'],
+                  ['USD / INR', '83.45', 'How many Indian Rupees per 1 USD'],
+                  ['BTC / USD', '67842', 'Bitcoin price in USD'],
+                  ['ETH / USD', '3521', 'Ethereum price in USD'],
+                  ['USDT / USD', '1.00', 'Tether to USD (usually 1:1)'],
+                ].map(([pair, val, desc], i) => `
+                  <div class="rate-edit-row">
+                    <div>
+                      <div class="rate-pair">${pair}</div>
+                      <div class="rate-desc">${desc}</div>
+                    </div>
+                    <div class="rate-input-wrap">
+                      <input class="rate-input" id="rate_${i}" type="number" step="0.01" value="${val}" />
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-title"><span>📊 Rate Margins & Fees</span></div>
+              <div class="rate-edit-row">
+                <div><div class="rate-pair">Buy Spread (%)</div><div class="rate-desc">Markup added to buying rate</div></div>
+                <input class="rate-input" type="number" step="0.1" value="1.5" />
+              </div>
+              <div class="rate-edit-row">
+                <div><div class="rate-pair">Sell Spread (%)</div><div class="rate-desc">Markdown from selling rate</div></div>
+                <input class="rate-input" type="number" step="0.1" value="1.2" />
+              </div>
+              <div class="rate-edit-row">
+                <div><div class="rate-pair">Card Service Fee ($)</div><div class="rate-desc">Fixed fee per virtual card order</div></div>
+                <input class="rate-input" type="number" step="0.5" value="3.00" />
+              </div>
+              <div style="margin-top:16px;text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="Toast.success('Saved','Fee settings saved.')">Save Fees</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nepal Accounts -->
+          <div class="tab-panel" id="section-accounts-np">
+            <div class="section-card">
+              <div class="section-title">
+                <span>🇳🇵 Nepal Payment Accounts</span>
+                <button class="btn btn-primary btn-sm" onclick="saveAccounts('np')">Save</button>
+              </div>
+              <p style="font-size:13px;color:var(--slate-500);margin-bottom:16px;">Nepalese users will send payments to these accounts. Keep them accurate.</p>
+              ${[
+                {method:'eSewa', icon:'🟢', fields:[['eSewa ID','nexvault@esewa'],['Display Name','NexVault Official']]},
+                {method:'Khalti', icon:'🟣', fields:[['Phone Number','9801234567'],['Account Name','NexVault']]},
+                {method:'FonePay', icon:'🔵', fields:[['FonePay ID','NXV-FP-001'],['Display Name','NexVault Exchange']]},
+                {method:'Bank Transfer', icon:'🏦', fields:[['Bank Name','NIC Asia Bank'],['Account Number','0012345678901'],['Account Name','NexVault Pvt Ltd']]},
+              ].map(a => `
+                <div class="account-card">
+                  <div class="account-card-header">
+                    <div class="account-method">${a.icon} ${a.method}</div>
+                  </div>
+                  ${a.fields.map(([label, val]) => `
+                    <div class="account-detail-row">
+                      <span class="account-detail-label">${label}</span>
+                      <input class="account-detail-input" value="${val}" placeholder="${val}" />
+                    </div>
+                  `).join('')}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- India Accounts -->
+          <div class="tab-panel" id="section-accounts-in">
+            <div class="section-card">
+              <div class="section-title">
+                <span>🇮🇳 India Payment Accounts</span>
+                <button class="btn btn-primary btn-sm" onclick="saveAccounts('in')">Save</button>
+              </div>
+              <p style="font-size:13px;color:var(--slate-500);margin-bottom:16px;">Indian users will send payments to these accounts.</p>
+              ${[
+                {method:'PhonePe', icon:'🔵', fields:[['UPI ID','nexvault@ybl'],['QR Code URL','https://...']]},
+                {method:'UPI', icon:'💳', fields:[['UPI ID','nexvault@upi'],['VPA Name','NexVault']]},
+                {method:'Paytm', icon:'🔷', fields:[['Paytm Number','9876543210'],['Name','NexVault']]},
+                {method:'Bank Transfer', icon:'🏦', fields:[['Bank Name','HDFC Bank'],['Account Number','50100123456789'],['IFSC','HDFC0001234'],['Account Name','NexVault India']]},
+              ].map(a => `
+                <div class="account-card">
+                  <div class="account-card-header">
+                    <div class="account-method">${a.icon} ${a.method}</div>
+                  </div>
+                  ${a.fields.map(([label, val]) => `
+                    <div class="account-detail-row">
+                      <span class="account-detail-label">${label}</span>
+                      <input class="account-detail-input" value="${val}" placeholder="${label}" />
+                    </div>
+                  `).join('')}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Crypto Wallets -->
+          <div class="tab-panel" id="section-crypto">
+            <div class="section-card">
+              <div class="section-title">
+                <span>₿ Crypto Receive Wallets</span>
+                <button class="btn btn-primary btn-sm" onclick="Toast.success('Saved','Wallet addresses saved.')">Save</button>
+              </div>
+              <p style="font-size:13px;color:var(--slate-500);margin-bottom:16px;">When users sell crypto, they send it to these addresses. Update carefully — wrong addresses = lost funds.</p>
+              ${[
+                ['Bitcoin (BTC)', '₿', 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'],
+                ['Ethereum (ETH)', 'Ξ', '0x71C7656EC7ab88b098defB751B7401B5f6d8976F'],
+                ['USDT (TRC-20)', '₮', 'TJRabPrwbZy45sbavfcjinPJC18giwyeTm'],
+                ['USDT (ERC-20)', '₮', '0x71C7656EC7ab88b098defB751B7401B5f6d8976F'],
+              ].map(([name, icon, addr]) => `
+                <div class="account-card">
+                  <div class="account-card-header">
+                    <div class="account-method">${icon} ${name}</div>
+                  </div>
+                  <div class="account-detail-row">
+                    <span class="account-detail-label">Wallet Address</span>
+                    <input class="account-detail-input" value="${addr}" style="width:100%;max-width:340px;font-size:12px;" />
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="tab-panel" id="section-notifications">
+            <div class="section-card">
+              <div class="section-title"><span>🔔 Notification Settings</span></div>
+              <div class="notification-row">
+                <div><div class="toggle-label">WhatsApp Notifications</div><div class="toggle-desc">Notify admin on new transaction via WhatsApp</div></div>
+                <label class="toggle-switch"><input type="checkbox" checked onchange="Toast.info('Updated','WhatsApp notification setting saved.')" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="notification-row">
+                <div><div class="toggle-label">Email Notifications</div><div class="toggle-desc">Email admin on new pending transaction</div></div>
+                <label class="toggle-switch"><input type="checkbox" checked onchange="Toast.info('Updated','Email notification setting saved.')" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="notification-row">
+                <div><div class="toggle-label">User KYC Submitted</div><div class="toggle-desc">Alert when a user submits KYC documents</div></div>
+                <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+              </div>
+              <div style="margin-top:16px;">
+                <label class="form-label">Admin WhatsApp Number</label>
+                <input class="wh-input" value="+977 9801234567" placeholder="+977 XXXXXXXXXX" style="margin-top:6px;" />
+              </div>
+              <div style="margin-top:12px;">
+                <label class="form-label">Admin Email</label>
+                <input class="wh-input" type="email" value="admin@nexvault.com" placeholder="admin@nexvault.com" style="margin-top:6px;" />
+              </div>
+              <div style="margin-top:16px;text-align:right;">
+                <button class="btn btn-primary btn-sm" onclick="Toast.success('Saved','Notification settings saved.')">Save</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- System -->
+          <div class="tab-panel" id="section-system">
+            <div class="section-card">
+              <div class="section-title"><span>⚙️ System Settings</span></div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Maintenance Mode</div><div class="toggle-desc">Temporarily disable all transactions</div></div>
+                <label class="toggle-switch"><input type="checkbox" onchange="Toast.warning('Maintenance','Maintenance mode toggled. (Mock)')" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">New Registrations</div><div class="toggle-desc">Allow new users to sign up</div></div>
+                <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Auto-KYC Approval</div><div class="toggle-desc">Skip manual KYC review (demo mode only)</div></div>
+                <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Buy Mode</div><div class="toggle-desc">Allow users to buy USD/crypto</div></div>
+                <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><div class="toggle-label">Sell Mode</div><div class="toggle-desc">Allow users to sell USD/crypto</div></div>
+                <label class="toggle-switch"><input type="checkbox" checked /><span class="toggle-slider"></span></label>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-title"><span>🗂 Platform Info</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                ${[['Platform','NexVault MVP'],['Version','1.0.0-beta'],['Mode','Static Demo'],['Built','HTML/CSS/JS'],['Target','India + Nepal'],['Backend','Manual (MVP)']].map(([l,v])=>`
+                  <div style="background:var(--navy-700);border-radius:8px;padding:12px;">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:2px;">${l}</div>
+                    <div style="font-size:13px;color:var(--slate-200);">${v}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+  initAppShell('admin', 'Settings', 'System configuration');
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = Auth.requireAuth();
+    if (!user?.isAdmin) { window.location.href = 'dashboard.html'; return; }
+  });
+
+  function switchSection(id) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.settings-nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('section-' + id)?.classList.add('active');
+    document.querySelectorAll('.settings-nav-item').forEach((b, i) => {
+      if (b.onclick?.toString().includes(id)) b.classList.add('active');
+    });
+    event.currentTarget?.classList.add('active');
+  }
+
+  function saveRates() {
+    Toast.success('Rates Updated', 'Exchange rates have been saved and are now live for users.');
+  }
+
+  function saveAccounts(region) {
+    Toast.success('Accounts Saved', `${region === 'np' ? 'Nepal' : 'India'} payment account details updated.`);
+  }
+</script>
+</body>
+</html>

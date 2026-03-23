@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Management — NexVault Admin</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .user-card { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:14px; padding:20px; margin-bottom:14px; transition:border-color .2s; }
+    .user-card:hover { border-color:var(--navy-500); }
+    .user-card-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; }
+    .user-avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--gold-500),var(--gold-600)); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px; color:var(--navy-950); flex-shrink:0; }
+    .user-info { flex:1; }
+    .user-name { font-size:15px; font-weight:700; color:var(--slate-100); }
+    .user-email { font-size:12px; color:var(--slate-500); margin-top:2px; font-family:'DM Mono',monospace; }
+    .user-meta { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+    .user-chip { font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+    .user-chip.nepal { background:rgba(59,130,246,.15); color:#60a5fa; }
+    .user-chip.india { background:rgba(249,115,22,.15); color:#fb923c; }
+    .kyc-chip { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+    .kyc-chip.verified { background:rgba(16,185,129,.15); color:var(--emerald); }
+    .kyc-chip.pending { background:rgba(245,158,11,.15); color:var(--amber); }
+    .kyc-chip.unverified { background:rgba(239,68,68,.12); color:var(--rose); }
+    .kyc-chip.review { background:rgba(139,92,246,.15); color:#a78bfa; }
+    .user-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+    .ua-btn { padding:6px 14px; border-radius:7px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid; transition:all .15s; }
+    .ua-btn.primary { background:rgba(16,185,129,.15); color:var(--emerald); border-color:rgba(16,185,129,.3); }
+    .ua-btn.primary:hover { background:var(--emerald); color:var(--navy-950); }
+    .ua-btn.danger { background:rgba(239,68,68,.1); color:var(--rose); border-color:rgba(239,68,68,.25); }
+    .ua-btn.danger:hover { background:var(--rose); color:#fff; }
+    .ua-btn.ghost { background:var(--navy-700); color:var(--slate-300); border-color:var(--navy-600); }
+    .ua-btn.ghost:hover { background:var(--navy-600); }
+    .user-stats { display:flex; gap:16px; margin-top:12px; flex-wrap:wrap; }
+    .user-stat { font-size:12px; color:var(--slate-500); }
+    .user-stat strong { color:var(--slate-300); }
+    .filters-bar { display:flex; flex-wrap:wrap; gap:10px; background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px; padding:14px; margin-bottom:20px; }
+    .filter-select { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-200); padding:7px 12px; border-radius:8px; font-size:13px; }
+    .filter-input { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-200); padding:7px 14px; border-radius:8px; font-size:13px; min-width:200px; }
+    .filter-input::placeholder { color:var(--slate-500); }
+    .filter-input:focus, .filter-select:focus { outline:none; border-color:var(--gold-500); }
+    .user-count { font-size:13px; color:var(--slate-400); margin-bottom:16px; }
+    .kyc-doc-preview { background:var(--navy-700); border-radius:10px; padding:24px; text-align:center; margin:12px 0; }
+    .summary-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:22px; }
+    .summary-stat { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px; padding:14px; }
+    .summary-stat-label { font-size:10px; color:var(--slate-500); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+    .summary-stat-value { font-family:'DM Mono',monospace; font-size:22px; font-weight:700; color:var(--slate-100); }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content" id="pageContent">
+
+      <div class="page-header">
+        <h1>User Management</h1>
+        <p>Manage users, review KYC submissions, approve or restrict accounts.</p>
+      </div>
+
+      <!-- Summary -->
+      <div class="summary-stats" id="summaryStats"></div>
+
+      <!-- Filters -->
+      <div class="filters-bar">
+        <select class="filter-select" id="fKyc" onchange="renderUsers()">
+          <option value="">All KYC Status</option>
+          <option value="verified">Verified</option>
+          <option value="review">Under Review</option>
+          <option value="pending">Pending</option>
+          <option value="unverified">Unverified</option>
+        </select>
+        <select class="filter-select" id="fNat" onchange="renderUsers()">
+          <option value="">All Countries</option>
+          <option value="Nepal">Nepal</option>
+          <option value="India">India</option>
+        </select>
+        <input type="text" class="filter-input" id="fSearch" placeholder="🔍 Search name or email…" oninput="renderUsers()" />
+        <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+      </div>
+
+      <div class="user-count" id="userCount"></div>
+      <div id="userList"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- KYC Review Modal -->
+<div class="modal-overlay hidden" id="kycModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>Review KYC Documents</h3>
+      <button class="modal-close" onclick="Modal.close('kycModal')">✕</button>
+    </div>
+    <div class="modal-body" id="kycModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="background:var(--emerald);" onclick="approveKYC()">✓ Approve KYC</button>
+      <button class="btn btn-danger" onclick="rejectKYC()">✕ Reject KYC</button>
+      <button class="btn btn-outline" onclick="Modal.close('kycModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Detail Modal -->
+<div class="modal-overlay hidden" id="userDetailModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3>User Details</h3>
+      <button class="modal-close" onclick="Modal.close('userDetailModal')">✕</button>
+    </div>
+    <div class="modal-body" id="userDetailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="Modal.close('userDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+  initAppShell('admin', 'Users', 'User management');
+
+  const MOCK_USERS = [
+    { id:'USR001', name:'Aarav Sharma', username:'aarav', email:'aarav@example.com', phone:'+977 9801112233', nationality:'Nepal', kycStatus:'verified', txCount:7, joinDate:'2025-10-12', docType:'Passport' },
+    { id:'USR002', name:'Priya Mehta', username:'priya', email:'priya@example.com', phone:'+91 9876543210', nationality:'India', kycStatus:'review', txCount:4, joinDate:'2025-10-18', docType:'National ID' },
+    { id:'USR003', name:'Rohan KC', username:'rohanKC', email:'rohan@example.com', phone:'+977 9811234567', nationality:'Nepal', kycStatus:'review', txCount:3, joinDate:'2025-10-25', docType:'Driving License' },
+    { id:'USR004', name:'Sita Thapa', username:'sita_t', email:'sita@example.com', phone:'+977 9823456789', nationality:'Nepal', kycStatus:'verified', txCount:6, joinDate:'2025-10-28', docType:'Passport' },
+    { id:'USR005', name:'Amit Verma', username:'amitverma', email:'amit@example.com', phone:'+91 9654321098', nationality:'India', kycStatus:'pending', txCount:0, joinDate:'2025-11-05', docType:null },
+    { id:'USR006', name:'Neha Singh', username:'neha_s', email:'neha@example.com', phone:'+91 9876501234', nationality:'India', kycStatus:'verified', txCount:2, joinDate:'2025-11-10', docType:'Passport' },
+    { id:'USR007', name:'Bikash Rai', username:'bikash', email:'bikash@example.com', phone:'+977 9845678901', nationality:'Nepal', kycStatus:'unverified', txCount:0, joinDate:'2025-11-20', docType:null },
+  ];
+
+  let users = [...MOCK_USERS];
+  let activeKycUserId = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = Auth.requireAuth();
+    if (!user?.isAdmin) { window.location.href = 'dashboard.html'; return; }
+    renderSummary();
+    renderUsers();
+  });
+
+  function renderSummary() {
+    document.getElementById('summaryStats').innerHTML = `
+      <div class="summary-stat"><div class="summary-stat-label">Total Users</div><div class="summary-stat-value">${users.length}</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Verified</div><div class="summary-stat-value" style="color:var(--emerald);">${users.filter(u=>u.kycStatus==='verified').length}</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Under Review</div><div class="summary-stat-value" style="color:#a78bfa;">${users.filter(u=>u.kycStatus==='review').length}</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Pending KYC</div><div class="summary-stat-value" style="color:var(--amber);">${users.filter(u=>u.kycStatus==='pending').length}</div></div>
+      <div class="summary-stat"><div class="summary-stat-label">Unverified</div><div class="summary-stat-value" style="color:var(--rose);">${users.filter(u=>u.kycStatus==='unverified').length}</div></div>
+    `;
+  }
+
+  function renderUsers() {
+    const kyc = document.getElementById('fKyc').value;
+    const nat = document.getElementById('fNat').value;
+    const search = document.getElementById('fSearch').value.toLowerCase();
+    const filtered = users.filter(u => {
+      if (kyc && u.kycStatus !== kyc) return false;
+      if (nat && u.nationality !== nat) return false;
+      if (search && !u.name.toLowerCase().includes(search) && !u.email.toLowerCase().includes(search) && !u.username.toLowerCase().includes(search)) return false;
+      return true;
+    });
+
+    document.getElementById('userCount').textContent = `${filtered.length} user${filtered.length !== 1 ? 's' : ''} found`;
+
+    if (!filtered.length) {
+      document.getElementById('userList').innerHTML = '<div style="text-align:center;padding:48px;color:var(--slate-500);">No users found.</div>';
+      return;
+    }
+
+    document.getElementById('userList').innerHTML = filtered.map(u => {
+      const initials = u.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+      const kycColor = { verified:'var(--emerald)', review:'#a78bfa', pending:'var(--amber)', unverified:'var(--rose)' }[u.kycStatus];
+      return `
+        <div class="user-card">
+          <div class="user-card-header">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div class="user-avatar">${initials}</div>
+              <div class="user-info">
+                <div class="user-name">${u.name}</div>
+                <div class="user-email">${u.email}</div>
+                <div class="user-meta">
+                  <span class="user-chip ${u.nationality.toLowerCase()}">${u.nationality === 'Nepal' ? '🇳🇵' : '🇮🇳'} ${u.nationality}</span>
+                  <span class="kyc-chip ${u.kycStatus}">${u.kycStatus === 'verified' ? '✓ Verified' : u.kycStatus === 'review' ? '🔍 Under Review' : u.kycStatus === 'pending' ? '⏳ Pending' : '✕ Unverified'}</span>
+                  <span style="font-size:11px;color:var(--slate-500);">@${u.username}</span>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--slate-500);text-align:right;">Joined ${u.joinDate}</div>
+          </div>
+          <div class="user-stats">
+            <div class="user-stat">Transactions: <strong>${u.txCount}</strong></div>
+            <div class="user-stat">Phone: <strong>${u.phone}</strong></div>
+            <div class="user-stat">Doc: <strong>${u.docType || '—'}</strong></div>
+          </div>
+          <div class="user-actions">
+            <button class="ua-btn ghost" onclick="viewUser('${u.id}')">👁 View</button>
+            ${(u.kycStatus === 'review' || u.kycStatus === 'pending') ? `<button class="ua-btn primary" onclick="reviewKYC('${u.id}')">🔍 Review KYC</button>` : ''}
+            ${u.kycStatus === 'review' ? `<button class="ua-btn primary" onclick="quickApproveKYC('${u.id}')">✓ Approve KYC</button>` : ''}
+            <button class="ua-btn danger" onclick="suspendUser('${u.id}')">🚫 Suspend</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function clearFilters() {
+    ['fKyc','fNat'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fSearch').value = '';
+    renderUsers();
+  }
+
+  function viewUser(id) {
+    const u = users.find(u => u.id === id);
+    if (!u) return;
+    document.getElementById('userDetailBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        ${[['User ID',u.id],['Full Name',u.name],['Username','@'+u.username],['Email',u.email],['Phone',u.phone],['Nationality',u.nationality],['KYC Status',u.kycStatus],['Doc Type',u.docType||'—'],['Joined',u.joinDate],['Transactions',u.txCount]].map(([l,v])=>`
+          <div style="background:var(--navy-700);border-radius:8px;padding:12px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);margin-bottom:3px;">${l}</div>
+            <div style="font-size:13px;color:var(--slate-200);">${v}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    Modal.open('userDetailModal');
+  }
+
+  function reviewKYC(id) {
+    activeKycUserId = id;
+    const u = users.find(u => u.id === id);
+    document.getElementById('kycModalBody').innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold-500),var(--gold-600));display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--navy-950);">${u.name.split(' ').map(w=>w[0]).join('').toUpperCase()}</div>
+        <div><div style="font-weight:700;color:var(--slate-100);">${u.name}</div><div style="font-size:12px;color:var(--slate-500);">${u.email}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div class="kyc-doc-preview"><div style="font-size:28px;margin-bottom:8px;">📄</div><div style="font-size:12px;color:var(--slate-400);">ID Document (${u.docType || 'N/A'})</div><div style="font-size:11px;color:var(--slate-500);margin-top:4px;">Preview in production</div></div>
+        <div class="kyc-doc-preview"><div style="font-size:28px;margin-bottom:8px;">📄</div><div style="font-size:12px;color:var(--slate-400);">Proof of Residency</div><div style="font-size:11px;color:var(--slate-500);margin-top:4px;">Preview in production</div></div>
+      </div>
+      <div style="background:var(--navy-700);border-radius:10px;padding:14px;font-size:13px;color:var(--slate-300);">
+        <div style="margin-bottom:6px;"><strong>Nationality:</strong> ${u.nationality}</div>
+        <div style="margin-bottom:6px;"><strong>Phone:</strong> ${u.phone}</div>
+        <div><strong>Submitted:</strong> ${u.joinDate}</div>
+      </div>
+    `;
+    Modal.open('kycModal');
+  }
+
+  function approveKYC() {
+    if (!activeKycUserId) return;
+    updateKYC(activeKycUserId, 'verified');
+    Modal.close('kycModal');
+    Toast.success('KYC Approved', 'User has been verified and notified.');
+  }
+
+  function rejectKYC() {
+    if (!activeKycUserId) return;
+    updateKYC(activeKycUserId, 'unverified');
+    Modal.close('kycModal');
+    Toast.error('KYC Rejected', 'User has been notified to resubmit.');
+  }
+
+  function quickApproveKYC(id) {
+    updateKYC(id, 'verified');
+    Toast.success('KYC Approved', 'User verified successfully.');
+  }
+
+  function updateKYC(id, status) {
+    users = users.map(u => u.id === id ? { ...u, kycStatus: status } : u);
+    renderSummary();
+    renderUsers();
+  }
+
+  function suspendUser(id) {
+    const u = users.find(u => u.id === id);
+    Toast.warning('Suspended', `${u.name}'s account has been suspended. (Mock in MVP)`);
+  }
+</script>
+</body>
+</html>

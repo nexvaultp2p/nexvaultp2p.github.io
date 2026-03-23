@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .profile-grid { display:grid; grid-template-columns:300px 1fr; gap:24px; }
+    @media(max-width:900px){ .profile-grid { grid-template-columns:1fr; } }
+    .profile-sidebar-card { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:16px; padding:28px; text-align:center; }
+    .avatar-wrap { width:88px; height:88px; border-radius:50%; background:linear-gradient(135deg,var(--gold-500),var(--gold-600)); display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;color:var(--navy-950);margin:0 auto 16px;position:relative; }
+    .avatar-badge { position:absolute;bottom:0;right:0;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--navy-800); }
+    .avatar-badge.verified { background:var(--emerald); }
+    .avatar-badge.pending { background:var(--amber); }
+    .profile-name { font-size:18px; font-weight:700; color:var(--slate-100); margin-bottom:4px; }
+    .profile-username { font-size:13px; color:var(--slate-500); font-family:'DM Mono',monospace; margin-bottom:16px; }
+    .profile-stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px; }
+    .profile-stat { background:var(--navy-700); border-radius:10px; padding:12px; }
+    .profile-stat-label { font-size:10px; color:var(--slate-500); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+    .profile-stat-value { font-family:'DM Mono',monospace; font-size:16px; font-weight:700; color:var(--slate-100); }
+    .profile-nav { margin-top:20px; display:flex; flex-direction:column; gap:4px; }
+    .profile-nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--slate-400); transition:all .15s; border:none; background:none; text-align:left; width:100%; }
+    .profile-nav-item:hover { background:var(--navy-700); color:var(--slate-200); }
+    .profile-nav-item.active { background:rgba(212,163,66,.1); color:var(--gold-400); }
+    .section-card { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:16px; padding:24px; margin-bottom:20px; }
+    .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+    .section-title { font-size:15px; font-weight:700; color:var(--slate-100); }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+    @media(max-width:600px){ .field-row { grid-template-columns:1fr; } }
+    .field-display { background:var(--navy-700); border:1px solid var(--navy-600); border-radius:8px; padding:10px 14px; }
+    .field-display-label { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--slate-500); margin-bottom:3px; }
+    .field-display-value { font-size:14px; color:var(--slate-200); }
+    .kyc-status-card { border-radius:12px; padding:20px; margin-bottom:20px; display:flex; align-items:center; gap:16px; }
+    .kyc-status-card.verified { background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.3); }
+    .kyc-status-card.pending { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.3); }
+    .kyc-status-card.unverified { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.3); }
+    .kyc-icon { font-size:32px; flex-shrink:0; }
+    .kyc-title { font-size:15px; font-weight:700; margin-bottom:4px; }
+    .kyc-sub { font-size:13px; color:var(--slate-400); }
+    .danger-zone { background:rgba(239,68,68,.05); border:1px solid rgba(239,68,68,.2); border-radius:12px; padding:20px; }
+    .danger-action { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(239,68,68,.1); }
+    .danger-action:last-child { border-bottom:none; }
+    .danger-label { font-size:14px; color:var(--slate-300); }
+    .danger-desc { font-size:12px; color:var(--slate-500); margin-top:2px; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .security-row { display:flex; justify-content:space-between; align-items:center; padding:16px 0; border-bottom:1px solid var(--navy-700); }
+    .security-row:last-child { border-bottom:none; }
+    .security-label { font-size:14px; color:var(--slate-300); font-weight:600; }
+    .security-desc { font-size:12px; color:var(--slate-500); margin-top:2px; }
+    .toggle-switch { position:relative; width:40px; height:22px; }
+    .toggle-switch input { opacity:0; width:0; height:0; }
+    .toggle-slider { position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--navy-600);border-radius:22px;transition:.2s; }
+    .toggle-slider:before { position:absolute;content:"";height:16px;width:16px;left:3px;bottom:3px;background:var(--slate-400);border-radius:50%;transition:.2s; }
+    input:checked + .toggle-slider { background:var(--gold-500); }
+    input:checked + .toggle-slider:before { transform:translateX(18px); background:var(--navy-950); }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content" id="pageContent">
+
+      <div class="page-header">
+        <h1>My Profile</h1>
+        <p>Manage your account settings and preferences.</p>
+      </div>
+
+      <div class="profile-grid">
+        <!-- Left Sidebar -->
+        <div>
+          <div class="profile-sidebar-card">
+            <div class="avatar-wrap" id="avatarWrap">
+              <span id="avatarInitials">?</span>
+              <div class="avatar-badge pending" id="avatarBadge">⏳</div>
+            </div>
+            <div class="profile-name" id="profileName">Loading…</div>
+            <div class="profile-username" id="profileUsername">@username</div>
+            <div id="kycBadgeRow"></div>
+            <div class="profile-stats" id="profileStats"></div>
+            <div class="profile-nav">
+              <button class="profile-nav-item active" onclick="switchTab('personal')">👤 Personal Info</button>
+              <button class="profile-nav-item" onclick="switchTab('kyc')">🔐 KYC Status</button>
+              <button class="profile-nav-item" onclick="switchTab('security')">🛡 Security</button>
+              <button class="profile-nav-item" onclick="switchTab('danger')">⚠️ Account</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Content -->
+        <div>
+          <!-- Personal Info -->
+          <div class="tab-panel active" id="tab-personal">
+            <div class="section-card">
+              <div class="section-header">
+                <div class="section-title">Personal Information</div>
+                <button class="btn btn-outline btn-sm" id="editPersonalBtn" onclick="toggleEditPersonal()">Edit</button>
+              </div>
+              <div id="personalDisplayMode">
+                <div class="field-row">
+                  <div class="field-display"><div class="field-display-label">Full Name</div><div class="field-display-value" id="disp_fullName">—</div></div>
+                  <div class="field-display"><div class="field-display-label">Email</div><div class="field-display-value" id="disp_email">—</div></div>
+                </div>
+                <div class="field-row">
+                  <div class="field-display"><div class="field-display-label">Username</div><div class="field-display-value" id="disp_username">—</div></div>
+                  <div class="field-display"><div class="field-display-label">Phone</div><div class="field-display-value" id="disp_phone">—</div></div>
+                </div>
+                <div class="field-row">
+                  <div class="field-display"><div class="field-display-label">Nationality</div><div class="field-display-value" id="disp_nationality">—</div></div>
+                  <div class="field-display"><div class="field-display-label">Date of Birth</div><div class="field-display-value" id="disp_dob">—</div></div>
+                </div>
+                <div style="margin-top:6px;">
+                  <div class="field-display"><div class="field-display-label">Address</div><div class="field-display-value" id="disp_address">—</div></div>
+                </div>
+              </div>
+              <div id="personalEditMode" class="hidden">
+                <div class="field-row">
+                  <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="edit_fullName" placeholder="Full legal name" /></div>
+                  <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="edit_phone" placeholder="+977 98XXXXXXXX" /></div>
+                </div>
+                <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="edit_address" placeholder="Your residential address" /></div>
+                <div style="display:flex;gap:10px;margin-top:8px;">
+                  <button class="btn btn-primary btn-sm" onclick="savePersonal()">Save Changes</button>
+                  <button class="btn btn-ghost btn-sm" onclick="toggleEditPersonal()">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- KYC Status -->
+          <div class="tab-panel" id="tab-kyc">
+            <div class="section-card">
+              <div class="section-title" style="margin-bottom:16px;">🔐 KYC Verification</div>
+              <div id="kycStatusContent"></div>
+            </div>
+          </div>
+
+          <!-- Security -->
+          <div class="tab-panel" id="tab-security">
+            <div class="section-card">
+              <div class="section-title" style="margin-bottom:16px;">🛡 Security Settings</div>
+              <div class="security-row">
+                <div><div class="security-label">Change Password</div><div class="security-desc">Update your login password</div></div>
+                <button class="btn btn-outline btn-sm" onclick="Modal.open('changePasswordModal')">Change</button>
+              </div>
+              <div class="security-row">
+                <div><div class="security-label">Two-Factor Authentication</div><div class="security-desc">Add an extra layer of security (coming soon)</div></div>
+                <label class="toggle-switch"><input type="checkbox" disabled /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="security-row">
+                <div><div class="security-label">Login Notifications</div><div class="security-desc">Email alert on new login</div></div>
+                <label class="toggle-switch"><input type="checkbox" checked onchange="Toast.info('Preference Saved','Login notifications updated.')" /><span class="toggle-slider"></span></label>
+              </div>
+              <div class="security-row">
+                <div><div class="security-label">Session Management</div><div class="security-desc">Active sessions across devices</div></div>
+                <button class="btn btn-outline btn-sm" onclick="logoutAll()">Logout All</button>
+              </div>
+            </div>
+            <div class="section-card">
+              <div class="section-title" style="margin-bottom:4px;">🔑 Recent Login Activity</div>
+              <p style="font-size:13px;color:var(--slate-500);margin-bottom:16px;">Mock data for MVP demonstration.</p>
+              ${['Chrome · Windows · Kathmandu, NP', 'Safari · iPhone · Kathmandu, NP'].map((s,i) => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--navy-700);">
+                  <div><div style="font-size:13px;color:var(--slate-300);">${s}</div><div style="font-size:11px;color:var(--slate-500);">${i===0?'Just now':'2 hours ago'}</div></div>
+                  <span style="font-size:11px;padding:3px 8px;background:rgba(16,185,129,.1);color:var(--emerald);border-radius:20px;">Active</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="tab-panel" id="tab-danger">
+            <div class="section-card">
+              <div class="section-title" style="margin-bottom:16px;color:var(--rose);">⚠️ Account Management</div>
+              <div class="danger-zone">
+                <div class="danger-action">
+                  <div><div class="danger-label">Logout</div><div class="danger-desc">Sign out of your current session</div></div>
+                  <button class="btn btn-outline btn-sm" onclick="Auth.logout()">Logout</button>
+                </div>
+                <div class="danger-action">
+                  <div><div class="danger-label">Export My Data</div><div class="danger-desc">Download a copy of your account data</div></div>
+                  <button class="btn btn-outline btn-sm" onclick="exportMyData()">Export</button>
+                </div>
+                <div class="danger-action">
+                  <div><div class="danger-label">Deactivate Account</div><div class="danger-desc">Temporarily disable your account</div></div>
+                  <button class="btn btn-danger btn-sm" onclick="Toast.warning('Not Available','Account deactivation requires contacting support in MVP mode.')">Deactivate</button>
+                </div>
+                <div class="danger-action">
+                  <div><div class="danger-label">Delete Account</div><div class="danger-desc">Permanently remove all your data</div></div>
+                  <button class="btn btn-danger btn-sm" onclick="Toast.warning('Contact Support','To permanently delete your account, please email support@nexvault.com.')">Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay hidden" id="changePasswordModal">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <h3>Change Password</h3>
+      <button class="modal-close" onclick="Modal.close('changePasswordModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Current Password</label>
+        <input type="password" class="form-input" id="currPw" placeholder="••••••••" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <input type="password" class="form-input" id="newPw" placeholder="Min 8 characters" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm New Password</label>
+        <input type="password" class="form-input" id="confirmPw" placeholder="Repeat new password" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="changePassword()">Update Password</button>
+      <button class="btn btn-outline" onclick="Modal.close('changePasswordModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+  initAppShell('profile', 'My Profile', 'Account settings');
+
+  let user = null;
+  let editMode = false;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    user = Auth.requireAuth();
+    renderProfile();
+  });
+
+  function renderProfile() {
+    const initials = (user.fullName || user.username || '?').split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('avatarInitials').textContent = initials;
+    document.getElementById('profileName').textContent = user.fullName || user.username;
+    document.getElementById('profileUsername').textContent = '@' + (user.username || 'user');
+
+    const kycStatus = user.kycStatus || 'pending';
+    const badge = document.getElementById('avatarBadge');
+    badge.className = 'avatar-badge ' + (kycStatus === 'verified' ? 'verified' : 'pending');
+    badge.textContent = kycStatus === 'verified' ? '✓' : '⏳';
+
+    document.getElementById('kycBadgeRow').innerHTML = `
+      <span style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;display:inline-block;background:${kycStatus==='verified'?'rgba(16,185,129,.15)':'rgba(245,158,11,.15)'};color:${kycStatus==='verified'?'var(--emerald)':'var(--amber)'};">
+        ${kycStatus === 'verified' ? '✓ KYC Verified' : '⏳ KYC Pending'}
+      </span>
+    `;
+
+    // Stats
+    const txCount = JSON.parse(localStorage.getItem('nv_transactions') || '[]').length + 8;
+    document.getElementById('profileStats').innerHTML = `
+      <div class="profile-stat"><div class="profile-stat-label">Transactions</div><div class="profile-stat-value">${txCount}</div></div>
+      <div class="profile-stat"><div class="profile-stat-label">Cards</div><div class="profile-stat-value">${JSON.parse(localStorage.getItem('nv_cards')||'[]').length}</div></div>
+    `;
+
+    // Fill fields
+    ['fullName','email','username','phone','nationality','dob','address'].forEach(f => {
+      const el = document.getElementById('disp_' + f);
+      if (el) el.textContent = user[f] || '—';
+    });
+
+    // KYC content
+    const kycCard = kycStatus === 'verified'
+      ? `<div class="kyc-status-card verified"><div class="kyc-icon">✅</div><div><div class="kyc-title" style="color:var(--emerald);">Identity Verified</div><div class="kyc-sub">Your KYC is complete. You have full access to all features.</div></div></div>
+         <div class="field-row">
+           <div class="field-display"><div class="field-display-label">Document Type</div><div class="field-display-value">${user.kycDocType || 'Passport'}</div></div>
+           <div class="field-display"><div class="field-display-label">Verified On</div><div class="field-display-value">${user.kycDate || 'N/A'}</div></div>
+         </div>`
+      : `<div class="kyc-status-card ${kycStatus === 'under_review' ? 'pending' : 'unverified'}"><div class="kyc-icon">${kycStatus === 'under_review' ? '⏳' : '🔒'}</div><div><div class="kyc-title" style="color:${kycStatus === 'under_review' ? 'var(--amber)' : 'var(--rose)'};">${kycStatus === 'under_review' ? 'Under Review' : 'Not Verified'}</div><div class="kyc-sub">${kycStatus === 'under_review' ? 'Your documents are being reviewed. This typically takes 1–24 hours.' : 'Complete KYC to unlock all transaction features.'}</div></div></div>
+         <a href="kyc.html" class="btn btn-primary" style="margin-top:12px;">Complete KYC →</a>`;
+    document.getElementById('kycStatusContent').innerHTML = kycCard;
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.profile-nav-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab)?.classList.add('active');
+    document.querySelectorAll('.profile-nav-item').forEach(b => {
+      if (b.textContent.toLowerCase().includes(tab.slice(0,3))) b.classList.add('active');
+    });
+  }
+
+  function toggleEditPersonal() {
+    editMode = !editMode;
+    document.getElementById('personalDisplayMode').classList.toggle('hidden', editMode);
+    document.getElementById('personalEditMode').classList.toggle('hidden', !editMode);
+    document.getElementById('editPersonalBtn').textContent = editMode ? 'Cancel' : 'Edit';
+    if (editMode) {
+      document.getElementById('edit_fullName').value = user.fullName || '';
+      document.getElementById('edit_phone').value = user.phone || '';
+      document.getElementById('edit_address').value = user.address || '';
+    }
+  }
+
+  function savePersonal() {
+    const fullName = document.getElementById('edit_fullName').value.trim();
+    const phone = document.getElementById('edit_phone').value.trim();
+    const address = document.getElementById('edit_address').value.trim();
+    if (!fullName) { Toast.error('Required', 'Full name is required.'); return; }
+    user = { ...user, fullName, phone, address };
+    Auth.setUser(user);
+    toggleEditPersonal();
+    renderProfile();
+    Toast.success('Saved', 'Profile updated successfully.');
+  }
+
+  function changePassword() {
+    const curr = document.getElementById('currPw').value;
+    const newPw = document.getElementById('newPw').value;
+    const conf = document.getElementById('confirmPw').value;
+    if (!curr) { Toast.error('Required', 'Enter your current password.'); return; }
+    if (newPw.length < 8) { Toast.error('Too Short', 'New password must be at least 8 characters.'); return; }
+    if (newPw !== conf) { Toast.error('Mismatch', 'Passwords do not match.'); return; }
+    Toast.success('Password Updated', 'Your password has been changed successfully.');
+    Modal.close('changePasswordModal');
+    ['currPw','newPw','confirmPw'].forEach(id => document.getElementById(id).value = '');
+  }
+
+  function logoutAll() {
+    Toast.info('Logged Out', 'All sessions have been terminated.');
+    setTimeout(() => Auth.logout(), 1200);
+  }
+
+  function exportMyData() {
+    const data = JSON.stringify({ user, transactions: JSON.parse(localStorage.getItem('nv_transactions')||'[]'), cards: JSON.parse(localStorage.getItem('nv_cards')||'[]') }, null, 2);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([data], {type:'application/json'}));
+    a.download = 'nexvault-my-data.json';
+    a.click();
+    Toast.success('Exported', 'Your data has been downloaded.');
+  }
+</script>
+</body>
+</html>

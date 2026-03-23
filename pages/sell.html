@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sell USD / Crypto — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .exchange-card { background: var(--surface-1); border: 1px solid var(--border-light); border-radius: var(--radius-xl); padding: 28px; margin-bottom:16px; }
+    .amount-input-wrap { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 8px; }
+    .amount-input-wrap label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); display: block; margin-bottom: 6px; }
+    .amount-input-wrap input { background: none; border: none; outline: none; font-family: 'DM Mono', monospace; font-size: 32px; font-weight: 500; color: var(--text-primary); width: 100%; }
+    .method-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+    .method-card { background: var(--surface-2); border: 2px solid var(--border); border-radius: var(--radius-md); padding: 14px 12px; cursor: pointer; transition: all var(--transition); display: flex; align-items: center; gap: 10px; }
+    .method-card:hover { border-color: var(--border-light); }
+    .method-card.selected { border-color: var(--gold-400); background: var(--gold-glow); }
+    .method-card .method-icon { font-size: 22px; }
+    .method-card .method-name { font-size: 13px; font-weight: 600; }
+    .method-card .method-sub { font-size: 11px; color: var(--text-muted); }
+    .method-card .check-mark { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    .method-card.selected .check-mark { background: var(--gold-400); border-color: var(--gold-400); color: var(--navy-950); font-weight: 800; }
+    .rate-display { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--gold-glow); border: 1px solid var(--border-gold); border-radius: var(--radius-md); margin-bottom: 20px; }
+    .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .summary-row:last-child { border-bottom: none; }
+    .order-sidebar { position: sticky; top: calc(var(--topbar-height) + 20px); }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div class="page-header">
+        <h1>Sell USD / Crypto</h1>
+        <p>Send your USD or crypto to us and receive local currency in your wallet or bank.</p>
+      </div>
+
+      <div class="content-grid">
+        <div>
+          <!-- Step 1: Asset to sell -->
+          <div class="exchange-card">
+            <h3 style="margin-bottom:4px;">Step 1 — What are you selling?</h3>
+            <p style="font-size:13px;margin-bottom:20px;">Select the asset you want to convert to local currency.</p>
+            <div class="pill-group" id="assetGroup">
+              <div class="pill selected" data-value="USD" onclick="selectAsset(this)">💵 USD</div>
+              <div class="pill" data-value="USDT" onclick="selectAsset(this)">🟢 USDT</div>
+              <div class="pill" data-value="BTC" onclick="selectAsset(this)">₿ Bitcoin</div>
+              <div class="pill" data-value="ETH" onclick="selectAsset(this)">Ξ Ethereum</div>
+            </div>
+          </div>
+
+          <!-- Step 2: Amount -->
+          <div class="exchange-card">
+            <h3 style="margin-bottom:4px;">Step 2 — Amount to Sell</h3>
+            <p style="font-size:13px;margin-bottom:16px;">Enter how much you want to sell.</p>
+            <div class="amount-input-wrap">
+              <label>You Send (<span id="assetLabel">USD</span>)</label>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:20px;color:var(--text-muted);" id="assetFlag">💵</span>
+                <input type="number" id="assetAmount" placeholder="0.00" oninput="calcLocal()" />
+              </div>
+            </div>
+            <div style="text-align:center;color:var(--text-muted);margin:6px 0;">↓</div>
+            <div class="amount-input-wrap">
+              <label>You Receive (<span id="localLabel">NPR</span>)</label>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:20px;" id="localFlag">🇳🇵</span>
+                <input type="number" id="localAmount" placeholder="0.00" oninput="calcAsset()" />
+              </div>
+            </div>
+            <div class="rate-display">
+              <span style="font-size:12px;color:var(--text-muted);">Exchange Rate</span>
+              <span style="font-family:'DM Mono',monospace;font-size:14px;font-weight:600;color:var(--gold-400);" id="rateDisplay">1 USD = 133.20 NPR</span>
+              <span class="badge badge-gold">Admin Rate</span>
+            </div>
+          </div>
+
+          <!-- Step 3: Where to send crypto/USD -->
+          <div class="exchange-card">
+            <h3 style="margin-bottom:4px;">Step 3 — Send Your <span id="sendAssetLabel">USD</span> Here</h3>
+            <p style="font-size:13px;margin-bottom:16px;" id="sendDesc">Admin will share wallet/bank address after you proceed.</p>
+            <div id="sendDetails" style="background:var(--surface-2);border:1px solid var(--border-gold);border-radius:var(--radius-md);padding:18px;">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Step 4: Receive method -->
+          <div class="exchange-card">
+            <h3 style="margin-bottom:4px;">Step 4 — How to receive <span id="currencyLabel">NPR</span>?</h3>
+            <p style="font-size:13px;margin-bottom:16px;">Choose where admin sends your local currency.</p>
+            <div class="method-grid" id="paymentMethods"></div>
+            <div class="form-group" style="margin-top:14px;">
+              <label class="form-label">Your <span id="methodNameLabel">eSewa</span> ID / Bank Account <span>*</span></label>
+              <input type="text" class="form-control" id="receiveId" placeholder="Your account/wallet ID" />
+              <div class="form-error" id="receiveId-err"></div>
+            </div>
+            <div class="form-group" id="bankNameGroup" style="display:none;">
+              <label class="form-label">Bank Name</label>
+              <input type="text" class="form-control" id="bankName" placeholder="Your bank name" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Order summary sidebar -->
+        <div class="order-sidebar">
+          <div class="exchange-card card-gold">
+            <h3 style="margin-bottom:16px;">Order Summary</h3>
+            <div class="summary-row"><span style="font-size:13px;color:var(--text-muted);">Selling</span><span style="font-size:14px;font-weight:600;" id="sum-asset">USD</span></div>
+            <div class="summary-row"><span style="font-size:13px;color:var(--text-muted);">Amount</span><span style="font-size:14px;font-weight:600;" id="sum-amount">—</span></div>
+            <div class="summary-row"><span style="font-size:13px;color:var(--text-muted);">You Receive</span><span style="font-size:14px;font-weight:600;color:var(--emerald);" id="sum-receive">—</span></div>
+            <div class="summary-row"><span style="font-size:13px;color:var(--text-muted);">Receive Via</span><span style="font-size:14px;font-weight:600;" id="sum-method">—</span></div>
+            <div class="summary-row" style="border:none;padding-top:14px;"><span style="font-size:12px;color:var(--text-muted);">Processing</span><span class="badge badge-amber">Manual · 1-4 hrs</span></div>
+            <hr class="divider" />
+            <button class="btn btn-primary btn-block btn-lg" onclick="proceedSell()">Proceed to Sell →</button>
+            <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px;">Submit your crypto/USD transfer proof to complete the transaction.</p>
+          </div>
+          <div class="card" style="padding:16px;margin-top:12px;">
+            <h4 style="font-size:13px;margin-bottom:12px;">📤 Sell Flow</h4>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;gap:8px;font-size:12px;color:var(--text-secondary);"><span>1️⃣</span><span>Submit sell order with your receive details</span></div>
+              <div style="display:flex;gap:8px;font-size:12px;color:var(--text-secondary);"><span>2️⃣</span><span>Send your USD/crypto to admin address shown</span></div>
+              <div style="display:flex;gap:8px;font-size:12px;color:var(--text-secondary);"><span>3️⃣</span><span>Upload transfer screenshot as proof</span></div>
+              <div style="display:flex;gap:8px;font-size:12px;color:var(--text-secondary);"><span>4️⃣</span><span>Admin verifies and sends local currency to you</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot Upload Modal -->
+<div class="modal-overlay hidden" id="sellModal">
+  <div class="modal modal-lg">
+    <button class="modal-close" onclick="Modal.close('sellModal')">✕</button>
+    <h2>📸 Upload Transfer Proof</h2>
+    <p>Transfer your <span id="modalAsset">USD</span> to admin and upload the transaction screenshot.</p>
+    <div id="adminSendDetails" style="background:var(--surface-2);border:1px solid var(--border-gold);border-radius:var(--radius-md);padding:16px;margin-bottom:16px;"></div>
+    <div class="form-group">
+      <label class="form-label">Upload Screenshot / Transaction Hash <span>*</span></label>
+      <div class="file-upload-area" id="sell-ss-area" onclick="document.getElementById('sellSS').click()">
+        <div class="upload-icon">📸</div>
+        <p style="font-weight:600;">Click to upload proof</p>
+        <p class="upload-hint">JPG or PNG · Max 5MB</p>
+      </div>
+      <div id="sell-ss-preview"></div>
+      <input type="file" id="sellSS" accept=".jpg,.jpeg,.png" style="display:none" onchange="handleSellFile()" />
+      <div class="form-error" id="sell-ss-err"></div>
+    </div>
+    <div style="display:flex;gap:12px;">
+      <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('sellModal')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" id="submitSellBtn" onclick="submitSell()">Submit Sell Order 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- Done modal -->
+<div class="modal-overlay hidden" id="sellDoneModal">
+  <div class="modal">
+    <h2>✅ Sell Order Submitted!</h2>
+    <p>Admin will verify your transfer and send you local currency shortly.</p>
+    <div id="sellConfirmBox" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;margin:16px 0;"></div>
+    <button class="btn btn-primary btn-block" onclick="window.location.href='transactions.html'">View Transactions →</button>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+const ASSET_FLAGS = { USD:'💵', USDT:'🟢', BTC:'₿', ETH:'Ξ' };
+const ASSET_RATES_NPR = { USD:133.20, USDT:133.22, BTC:9040000, ETH:469000 };
+const ASSET_RATES_INR = { USD:83.45, USDT:83.48, BTC:5657000, ETH:293600 };
+const ADMIN_ADDRESSES = {
+  USD: { type:'Bank Transfer', detail:'Provide in chat after order', name:'NexVault Exchange' },
+  USDT: { type:'USDT TRC20 Wallet', detail:'TNexVaultXXXXXXXXXXXXXXXXXXXXX', name:'NexVault Wallet' },
+  BTC: { type:'Bitcoin Wallet', detail:'bc1qNexVaultXXXXXXXXXXXXXXXXXX', name:'NexVault BTC' },
+  ETH: { type:'Ethereum Wallet (ERC20)', detail:'0xNexVaultXXXXXXXXXXXXXXXXXXX', name:'NexVault ETH' },
+};
+
+let selectedAsset = 'USD';
+let selectedMethod = null;
+
+function selectAsset(el) {
+  document.querySelectorAll('#assetGroup .pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAsset = el.dataset.value;
+  document.getElementById('assetLabel').textContent = selectedAsset;
+  document.getElementById('assetFlag').textContent = ASSET_FLAGS[selectedAsset];
+  document.getElementById('sendAssetLabel').textContent = selectedAsset;
+  document.getElementById('sum-asset').textContent = selectedAsset;
+  updateRate(); buildSendDetails(); recalc();
+}
+
+function updateRate() {
+  const user = Auth.getUser();
+  const rates = user?.nationality === 'IN' ? ASSET_RATES_INR : ASSET_RATES_NPR;
+  const currency = user?.nationality === 'IN' ? 'INR' : 'NPR';
+  const rate = rates[selectedAsset];
+  document.getElementById('rateDisplay').textContent = `1 ${selectedAsset} = ${Format.number(rate)} ${currency}`;
+  document.getElementById('localLabel').textContent = currency;
+  document.getElementById('localFlag').textContent = user?.nationality === 'IN' ? '🇮🇳' : '🇳🇵';
+  document.getElementById('currencyLabel').textContent = currency;
+}
+
+function calcLocal() {
+  const user = Auth.getUser();
+  const rates = user?.nationality === 'IN' ? ASSET_RATES_INR : ASSET_RATES_NPR;
+  const assetAmt = parseFloat(document.getElementById('assetAmount').value);
+  const localInput = document.getElementById('localAmount');
+  if (assetAmt > 0) localInput.value = (assetAmt * rates[selectedAsset]).toFixed(2);
+  else localInput.value = '';
+  updateSummary();
+}
+
+function calcAsset() {
+  const user = Auth.getUser();
+  const rates = user?.nationality === 'IN' ? ASSET_RATES_INR : ASSET_RATES_NPR;
+  const localAmt = parseFloat(document.getElementById('localAmount').value);
+  const assetInput = document.getElementById('assetAmount');
+  if (localAmt > 0) assetInput.value = (localAmt / rates[selectedAsset]).toFixed(selectedAsset === 'BTC' ? 6 : 2);
+  else assetInput.value = '';
+  updateSummary();
+}
+
+function recalc() { calcLocal(); }
+
+function updateSummary() {
+  const user = Auth.getUser();
+  const currency = user?.nationality === 'IN' ? 'INR' : 'NPR';
+  const assetAmt = document.getElementById('assetAmount').value;
+  const localAmt = document.getElementById('localAmount').value;
+  document.getElementById('sum-amount').textContent = assetAmt ? `${assetAmt} ${selectedAsset}` : '—';
+  document.getElementById('sum-receive').textContent = localAmt ? `${currency} ${Format.number(parseFloat(localAmt))}` : '—';
+  document.getElementById('sum-method').textContent = selectedMethod ? selectedMethod.name : '—';
+}
+
+function buildSendDetails() {
+  const addr = ADMIN_ADDRESSES[selectedAsset];
+  document.getElementById('sendDetails').innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:12px;">Send to Admin ${addr.type}</div>
+    <div style="background:var(--surface-3);border-radius:var(--radius-md);padding:12px;font-family:'DM Mono',monospace;font-size:13px;word-break:break-all;color:var(--gold-400);">${addr.detail}</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">⚠️ Shown after order confirmation. Upload screenshot as proof after sending.</div>`;
+}
+
+function buildPaymentMethods() {
+  const user = Auth.getUser();
+  const methods = user?.nationality === 'IN'
+    ? [{ id:'phonepe', name:'PhonePe/UPI', icon:'💜' }, { id:'bank_in', name:'Bank Transfer', icon:'🏦' }]
+    : [{ id:'esewa', name:'eSewa', icon:'🟢' }, { id:'fonepay', name:'FonePay', icon:'🔴' }, { id:'khalti', name:'Khalti', icon:'🟣' }, { id:'bank_np', name:'Bank Transfer', icon:'🏦' }];
+  document.getElementById('paymentMethods').innerHTML = methods.map(m => `
+    <div class="method-card" onclick="selectMethod(this,'${m.id}','${m.name}')">
+      <span class="method-icon">${m.icon}</span>
+      <div><div class="method-name">${m.name}</div></div>
+      <div class="check-mark">✓</div>
+    </div>`).join('');
+}
+
+function selectMethod(el, id, name) {
+  document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMethod = { id, name };
+  document.getElementById('methodNameLabel').textContent = name;
+  const isBank = id.startsWith('bank');
+  document.getElementById('bankNameGroup').style.display = isBank ? '' : 'none';
+  updateSummary();
+}
+
+function proceedSell() {
+  const assetAmt = document.getElementById('assetAmount').value;
+  const receiveId = document.getElementById('receiveId').value;
+
+  if (!assetAmt || parseFloat(assetAmt) <= 0) { Toast.error('Amount required', 'Enter the amount you want to sell.'); return; }
+  if (!selectedMethod) { Toast.error('Method required', 'Select a receive method.'); return; }
+  if (!receiveId.trim()) { Validator.setError(document.getElementById('receiveId'), 'Enter your account/wallet ID'); return; }
+
+  const user = Auth.getUser();
+  if (user?.kycStatus !== 'verified') { Toast.error('KYC Required', 'Complete identity verification first.'); setTimeout(() => window.location.href = 'kyc.html', 1000); return; }
+
+  const addr = ADMIN_ADDRESSES[selectedAsset];
+  document.getElementById('modalAsset').textContent = selectedAsset;
+  document.getElementById('adminSendDetails').innerHTML = `
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px;">Send ${assetAmt} ${selectedAsset} to:</div>
+    <div style="background:var(--surface-3);border-radius:var(--radius-md);padding:12px;font-family:'DM Mono',monospace;font-size:13px;word-break:break-all;color:var(--gold-400);margin-bottom:8px;">${addr.detail}</div>
+    <div style="font-size:11px;color:var(--text-muted);">After sending, upload your transaction screenshot or paste the transaction hash below.</div>`;
+  Modal.open('sellModal');
+}
+
+function handleSellFile() {
+  const input = document.getElementById('sellSS');
+  const preview = document.getElementById('sell-ss-preview');
+  const area = document.getElementById('sell-ss-area');
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  preview.innerHTML = `<div class="file-preview"><span class="file-icon">🖼️</span><div><div class="file-name">${file.name}</div></div></div>`;
+  area.style.display = 'none';
+}
+
+async function submitSell() {
+  if (!document.getElementById('sellSS').files[0]) {
+    document.getElementById('sell-ss-err').textContent = 'Upload your transfer screenshot.';
+    document.getElementById('sell-ss-err').classList.add('visible');
+    return;
+  }
+  const btn = document.getElementById('submitSellBtn');
+  btn.innerHTML = '<div class="spinner"></div> Submitting...';
+  btn.disabled = true;
+  await new Promise(r => setTimeout(r, 1600));
+
+  const txId = Format.txId();
+  const user = Auth.getUser();
+  const currency = user?.nationality === 'IN' ? 'INR' : 'NPR';
+  const assetAmt = document.getElementById('assetAmount').value;
+  const localAmt = document.getElementById('localAmount').value;
+
+  Modal.close('sellModal');
+  document.getElementById('sellConfirmBox').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Tx ID</span><span style="font-family:'DM Mono',monospace;">${txId}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Sold</span><span>${assetAmt} ${selectedAsset}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Receive</span><span style="color:var(--emerald);">${currency} ${Format.number(parseFloat(localAmt))}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Status</span><span class="badge badge-amber">⏳ Admin Verifying</span></div>
+    </div>`;
+  Modal.open('sellDoneModal');
+}
+
+onReady(() => {
+  Auth.requireAuth();
+  initAppShell('sell', 'Sell USD / Crypto', 'Convert your digital assets to local currency');
+  buildPaymentMethods();
+  buildSendDetails();
+});
+</script>
+</body>
+</html>

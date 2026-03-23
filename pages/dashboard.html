@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content" id="pageContent">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <h1 id="welcomeMsg">Good morning 👋</h1>
+        <p id="welcomeSub">Here's a summary of your exchange activity.</p>
+      </div>
+
+      <!-- KYC Warning (shown if not verified) -->
+      <div id="kycWarn" class="hidden" style="margin-bottom:24px;">
+        <div class="restricted-banner">
+          <div class="restricted-icon">🔒</div>
+          <div class="restricted-text">
+            <h3>Transactions Locked</h3>
+            <p>Complete KYC verification to unlock all buying, selling and card features.</p>
+          </div>
+          <a href="kyc.html" class="btn btn-primary btn-sm" style="margin-left:auto;flex-shrink:0;">Complete KYC →</a>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="dashboard-grid" style="margin-bottom:28px;">
+        <div class="stat-card card-gold">
+          <div class="stat-label">Total Bought (USD)</div>
+          <div class="stat-value">$1,240</div>
+          <div class="stat-change up">▲ 12% this month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Sold (USD)</div>
+          <div class="stat-value">$480</div>
+          <div class="stat-change down">▼ 3% this month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending Transactions</div>
+          <div class="stat-value" id="pendingCount">2</div>
+          <div class="stat-change" style="color:var(--amber);">⏳ Awaiting admin review</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Completed Trades</div>
+          <div class="stat-value">14</div>
+          <div class="stat-change up">▲ All verified</div>
+        </div>
+      </div>
+
+      <!-- Live Rates + Quick Actions -->
+      <div class="content-grid" style="margin-bottom:24px;">
+        <div>
+          <!-- Quick Actions -->
+          <div class="section-header"><h3>Quick Actions</h3></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;" id="quickActions">
+            <a href="buy.html" class="card" style="display:flex;align-items:center;gap:14px;padding:18px;text-decoration:none;cursor:pointer;transition:all .2s;">
+              <div class="tx-icon buy" style="width:48px;height:48px;font-size:22px;">💵</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text-primary);">Buy USD/Crypto</div><div style="font-size:12px;color:var(--text-muted);">Pay with local currency</div></div>
+            </a>
+            <a href="sell.html" class="card" style="display:flex;align-items:center;gap:14px;padding:18px;text-decoration:none;cursor:pointer;transition:all .2s;">
+              <div class="tx-icon sell" style="width:48px;height:48px;font-size:22px;">📤</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text-primary);">Sell USD/Crypto</div><div style="font-size:12px;color:var(--text-muted);">Receive local currency</div></div>
+            </a>
+            <a href="virtual-card.html" class="card" style="display:flex;align-items:center;gap:14px;padding:18px;text-decoration:none;cursor:pointer;transition:all .2s;">
+              <div class="tx-icon pending" style="width:48px;height:48px;font-size:22px;">💳</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text-primary);">Virtual Visa Card</div><div style="font-size:12px;color:var(--text-muted);">Preloaded for online use</div></div>
+            </a>
+            <a href="transactions.html" class="card" style="display:flex;align-items:center;gap:14px;padding:18px;text-decoration:none;cursor:pointer;transition:all .2s;">
+              <div class="tx-icon" style="background:rgba(96,104,120,.2);width:48px;height:48px;font-size:22px;">📜</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--text-primary);">Transaction History</div><div style="font-size:12px;color:var(--text-muted);">View all trades</div></div>
+            </a>
+          </div>
+
+          <!-- Recent Transactions -->
+          <div class="section-header">
+            <h3>Recent Activity</h3>
+            <a href="transactions.html" class="btn btn-ghost btn-sm">View all →</a>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;" id="recentTxList">
+            <!-- populated by JS -->
+          </div>
+        </div>
+
+        <!-- Right: Rates + Profile snapshot -->
+        <div>
+          <div class="section-header"><h3>Live Rates</h3><span class="badge badge-green">● Live</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
+            <div class="rate-ticker"><span class="rate-label">USD / NPR</span><span class="rate-value">133.20</span><span class="badge badge-green" style="margin-left:auto;">▲ 0.12%</span></div>
+            <div class="rate-ticker"><span class="rate-label">USD / INR</span><span class="rate-value">83.45</span><span class="badge badge-green" style="margin-left:auto;">▲ 0.08%</span></div>
+            <div class="rate-ticker"><span class="rate-label">BTC / USD</span><span class="rate-value">67,842</span><span class="badge badge-red" style="margin-left:auto;">▼ 0.42%</span></div>
+            <div class="rate-ticker"><span class="rate-label">ETH / USD</span><span class="rate-value">3,521</span><span class="badge badge-green" style="margin-left:auto;">▲ 1.20%</span></div>
+            <div class="rate-ticker"><span class="rate-label">USDT / USD</span><span class="rate-value">1.0002</span><span class="badge badge-green" style="margin-left:auto;">▲ 0.01%</span></div>
+          </div>
+
+          <!-- Profile Snapshot -->
+          <div class="section-header"><h3>Account</h3></div>
+          <div class="card card-gold" style="padding:20px;">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+              <div class="user-avatar user-avatar-initials" style="width:52px;height:52px;font-size:20px;flex-shrink:0;"></div>
+              <div>
+                <div style="font-weight:700;font-size:15px;" id="profileName">—</div>
+                <div style="font-size:12px;color:var(--text-muted);" id="profileUsername">—</div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--text-muted);">KYC Status</span>
+                <span id="kycBadge"></span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--text-muted);">Nationality</span>
+                <span id="nationalityBadge" style="font-size:13px;font-weight:600;"></span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--text-muted);">Member Since</span>
+                <span id="memberSince" style="font-size:13px;font-weight:600;"></span>
+              </div>
+            </div>
+            <a href="profile.html" class="btn btn-outline btn-sm btn-block" style="margin-top:16px;">View Full Profile</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+const mockTx = [
+  { id:'NV-7F3K2A', type:'buy', label:'Bought USD', method:'eSewa → USD', amount:'+$250.00', date:'2025-06-10', status:'completed' },
+  { id:'NV-9D2M1C', type:'sell', label:'Sold BTC', method:'BTC → NPR', amount:'+NPR 42,500', date:'2025-06-08', status:'completed' },
+  { id:'NV-4B7X9E', type:'buy', label:'Virtual Visa Card', method:'FonePay → Visa $50', amount:'+$50.00', date:'2025-06-06', status:'pending' },
+  { id:'NV-2A5Q8F', type:'buy', label:'Bought USDT', method:'Khalti → USDT', amount:'+$100.00', date:'2025-06-04', status:'completed' },
+];
+
+onReady(() => {
+  Auth.requireAuth();
+  initAppShell('dashboard', 'Dashboard', 'Your exchange overview');
+
+  const user = Auth.getUser();
+  if (!user) return;
+
+  // Welcome message
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('welcomeMsg').textContent = `${greet}, ${user.fullName?.split(' ')[0] || user.username} 👋`;
+
+  // KYC warning
+  if (user.kycStatus !== 'verified') {
+    document.getElementById('kycWarn').classList.remove('hidden');
+  }
+
+  // Profile snapshot
+  document.getElementById('profileName').textContent = user.fullName || user.username;
+  document.getElementById('profileUsername').textContent = '@' + user.username;
+
+  const statusMap = {
+    verified: '<span class="badge badge-green">✅ Verified</span>',
+    pending: '<span class="badge badge-amber">⏳ Pending</span>',
+    under_review: '<span class="badge badge-amber">🔍 Under Review</span>',
+    rejected: '<span class="badge badge-red">❌ Rejected</span>',
+  };
+  document.getElementById('kycBadge').innerHTML = statusMap[user.kycStatus] || statusMap.pending;
+  document.getElementById('nationalityBadge').textContent = user.nationality === 'IN' ? '🇮🇳 Indian' : '🇳🇵 Nepali';
+  document.getElementById('memberSince').textContent = Format.date(user.joinDate);
+
+  // Initials in profile card
+  const initials = (user.fullName || user.username || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  document.querySelector('.user-avatar-initials').textContent = initials;
+
+  // Recent transactions
+  const list = document.getElementById('recentTxList');
+  if (mockTx.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><h3>No transactions yet</h3><p>Make your first exchange to see activity here.</p></div>`;
+  } else {
+    list.innerHTML = mockTx.map(tx => `
+      <div class="tx-row" onclick="window.location.href='transactions.html'">
+        <div class="tx-icon ${tx.type}">
+          ${tx.type === 'buy' ? '💵' : '📤'}
+        </div>
+        <div class="tx-info">
+          <div class="tx-title">${tx.label}</div>
+          <div class="tx-sub">${tx.method} · ${tx.id}</div>
+        </div>
+        <div class="tx-amount">
+          <div class="amount positive">${tx.amount}</div>
+          <div class="tx-date">${Format.date(tx.date)}</div>
+        </div>
+        <span class="badge ${tx.status === 'completed' ? 'badge-green' : 'badge-amber'}" style="flex-shrink:0;">${tx.status === 'completed' ? '✅' : '⏳'}</span>
+      </div>`).join('');
+  }
+});
+</script>
+</body>
+</html>

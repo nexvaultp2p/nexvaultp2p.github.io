@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>All Transactions — NexVault Admin</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .filters-bar { display:flex; flex-wrap:wrap; gap:10px; background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px; padding:14px; margin-bottom:20px; }
+    .filter-select { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-200); padding:7px 12px; border-radius:8px; font-size:13px; }
+    .filter-input { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-200); padding:7px 14px; border-radius:8px; font-size:13px; min-width:200px; }
+    .filter-input::placeholder { color:var(--slate-500); }
+    .filter-input:focus, .filter-select:focus { outline:none; border-color:var(--gold-500); }
+    .ledger-table-wrap { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:16px; overflow:hidden; }
+    .ledger-table { width:100%; border-collapse:collapse; }
+    .ledger-table th { background:var(--navy-900); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--slate-400); padding:12px 14px; text-align:left; border-bottom:1px solid var(--navy-700); white-space:nowrap; }
+    .ledger-table td { padding:13px 14px; border-bottom:1px solid var(--navy-700); font-size:13px; color:var(--slate-300); }
+    .ledger-table tr:last-child td { border-bottom:none; }
+    .ledger-table tr:hover td { background:rgba(255,255,255,.02); }
+    .mono { font-family:'DM Mono',monospace; }
+    .tx-type { font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; }
+    .tx-type.buy { background:rgba(16,185,129,.15); color:var(--emerald); }
+    .tx-type.sell { background:rgba(239,68,68,.15); color:var(--rose); }
+    .tx-type.card { background:rgba(212,163,66,.15); color:var(--gold-400); }
+    .status-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:5px; }
+    .status-dot.completed { background:var(--emerald); }
+    .status-dot.pending { background:var(--amber); }
+    .status-dot.rejected { background:var(--rose); }
+    .ledger-footer { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-top:1px solid var(--navy-700); flex-wrap:wrap; gap:10px; }
+    .footer-totals { font-size:13px; color:var(--slate-400); }
+    .footer-totals span { color:var(--gold-400); font-family:'DM Mono',monospace; font-weight:700; }
+    .page-btns { display:flex; gap:6px; }
+    .page-btn { background:var(--navy-700); border:none; padding:6px 12px; border-radius:7px; color:var(--slate-300); font-size:13px; cursor:pointer; }
+    .page-btn:hover { background:var(--navy-600); }
+    .page-btn.active { background:var(--gold-500); color:var(--navy-950); font-weight:700; }
+    .ledger-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; margin-bottom:22px; }
+    .ledger-stat { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px; padding:16px; }
+    .ledger-stat-label { font-size:10px; color:var(--slate-500); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+    .ledger-stat-value { font-family:'DM Mono',monospace; font-size:20px; font-weight:700; color:var(--slate-100); }
+    @media(max-width:768px) { .ledger-table th:nth-child(5), .ledger-table td:nth-child(5) { display:none; } }
+    @media(max-width:600px) { .ledger-table th:nth-child(6), .ledger-table td:nth-child(6) { display:none; } }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content" id="pageContent">
+
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1>All Transactions</h1>
+          <p>Complete ledger of every transaction on the platform.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm" onclick="exportLedgerCSV()">⬇ Export CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="exportLedgerXLSX()">⬇ Excel</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="ledger-stats" id="ledgerStats"></div>
+
+      <!-- Filters -->
+      <div class="filters-bar">
+        <select class="filter-select" id="fType" onchange="applyFilters()">
+          <option value="">All Types</option>
+          <option value="buy">Buy</option>
+          <option value="sell">Sell</option>
+          <option value="card">Card</option>
+        </select>
+        <select class="filter-select" id="fStatus" onchange="applyFilters()">
+          <option value="">All Statuses</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select class="filter-select" id="fNationality" onchange="applyFilters()">
+          <option value="">All Countries</option>
+          <option value="Nepal">Nepal (NPR)</option>
+          <option value="India">India (INR)</option>
+        </select>
+        <input type="text" class="filter-input" id="fSearch" placeholder="🔍 Search ID, user, asset…" oninput="applyFilters()" />
+        <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+      </div>
+
+      <!-- Table -->
+      <div class="ledger-table-wrap">
+        <div style="overflow-x:auto;">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>TX ID</th>
+                <th>User</th>
+                <th>Type</th>
+                <th>Asset</th>
+                <th>Amount</th>
+                <th>Local Amount</th>
+                <th>Method</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyLedger" class="hidden" style="text-align:center;padding:48px;color:var(--slate-500);">📭 No transactions found.</div>
+        <div class="ledger-footer" id="ledgerFooter"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+  initAppShell('admin', 'All Transactions', 'Platform ledger');
+
+  const ALL_TX = [
+    { id:'NXV-2025-001', user:'Aarav Sharma', type:'buy', asset:'USD', amount:100, localAmount:13320, currency:'NPR', method:'eSewa', status:'completed', date:'2025-11-15T09:23Z', nationality:'Nepal' },
+    { id:'NXV-2025-002', user:'Aarav Sharma', type:'sell', asset:'USDT', amount:50, localAmount:6655, currency:'NPR', method:'Khalti', status:'completed', date:'2025-11-18T14:40Z', nationality:'Nepal' },
+    { id:'NXV-2025-003', user:'Priya Mehta', type:'buy', asset:'BTC', amount:0.001, localAmount:5688, currency:'INR', method:'PhonePe', status:'pending', date:'2025-11-20T11:10Z', nationality:'India' },
+    { id:'NXV-2025-004', user:'Priya Mehta', type:'card', asset:'VISA $25', amount:25, localAmount:2361, currency:'INR', method:'UPI', status:'completed', date:'2025-11-22T16:05Z', nationality:'India' },
+    { id:'NXV-2025-005', user:'Rohan KC', type:'buy', asset:'ETH', amount:0.02, localAmount:5890, currency:'NPR', method:'FonePay', status:'rejected', date:'2025-11-23T08:00Z', nationality:'Nepal' },
+    { id:'NXV-2025-006', user:'Sita Thapa', type:'sell', asset:'USD', amount:200, localAmount:26580, currency:'NPR', method:'FonePay', status:'completed', date:'2025-11-25T13:30Z', nationality:'Nepal' },
+    { id:'NXV-2025-007', user:'Aarav Sharma', type:'buy', asset:'USD', amount:300, localAmount:40050, currency:'NPR', method:'Khalti', status:'pending', date:'2025-11-26T10:00Z', nationality:'Nepal' },
+    { id:'NXV-2025-008', user:'Priya Mehta', type:'card', asset:'VISA $50', amount:50, localAmount:4456, currency:'INR', method:'PhonePe', status:'pending', date:'2025-11-27T09:15Z', nationality:'India' },
+    { id:'NXV-2025-009', user:'Rohan KC', type:'sell', asset:'USDT', amount:80, localAmount:10638, currency:'NPR', method:'eSewa', status:'pending', date:'2025-11-27T11:00Z', nationality:'Nepal' },
+    { id:'NXV-2025-010', user:'Amit Verma', type:'buy', asset:'USD', amount:500, localAmount:41725, currency:'INR', method:'Bank', status:'completed', date:'2025-11-28T08:00Z', nationality:'India' },
+    { id:'NXV-2025-011', user:'Sita Thapa', type:'buy', asset:'BTC', amount:0.005, localAmount:28500, currency:'NPR', method:'eSewa', status:'completed', date:'2025-11-28T10:00Z', nationality:'Nepal' },
+    { id:'NXV-2025-012', user:'Amit Verma', type:'card', asset:'VISA $100', amount:100, localAmount:8852, currency:'INR', method:'Paytm', status:'completed', date:'2025-11-28T14:00Z', nationality:'India' },
+  ];
+
+  const PAGE_SIZE = 10;
+  let filtered = [...ALL_TX];
+  let currentPage = 1;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = Auth.requireAuth();
+    if (!user?.isAdmin) { window.location.href = 'dashboard.html'; return; }
+    renderStats();
+    renderLedger();
+  });
+
+  function renderStats() {
+    const vol = ALL_TX.filter(t => t.status === 'completed').reduce((s, t) => s + t.amount, 0);
+    const revenue = ALL_TX.filter(t => t.status === 'completed').length * 3.5;
+    document.getElementById('ledgerStats').innerHTML = `
+      <div class="ledger-stat"><div class="ledger-stat-label">Total Transactions</div><div class="ledger-stat-value">${ALL_TX.length}</div></div>
+      <div class="ledger-stat"><div class="ledger-stat-label">Completed</div><div class="ledger-stat-value" style="color:var(--emerald);">${ALL_TX.filter(t=>t.status==='completed').length}</div></div>
+      <div class="ledger-stat"><div class="ledger-stat-label">Pending</div><div class="ledger-stat-value" style="color:var(--amber);">${ALL_TX.filter(t=>t.status==='pending').length}</div></div>
+      <div class="ledger-stat"><div class="ledger-stat-label">Total Volume</div><div class="ledger-stat-value" style="color:var(--gold-400);">$${vol.toLocaleString()}</div></div>
+      <div class="ledger-stat"><div class="ledger-stat-label">Est. Revenue</div><div class="ledger-stat-value">$${revenue.toFixed(0)}</div></div>
+    `;
+  }
+
+  function applyFilters() {
+    const type = document.getElementById('fType').value;
+    const status = document.getElementById('fStatus').value;
+    const nat = document.getElementById('fNationality').value;
+    const search = document.getElementById('fSearch').value.toLowerCase();
+    filtered = ALL_TX.filter(t => {
+      if (type && t.type !== type) return false;
+      if (status && t.status !== status) return false;
+      if (nat && t.nationality !== nat) return false;
+      if (search && !t.id.toLowerCase().includes(search) && !t.user.toLowerCase().includes(search) && !t.asset.toLowerCase().includes(search)) return false;
+      return true;
+    });
+    currentPage = 1;
+    renderLedger();
+  }
+
+  function clearFilters() {
+    ['fType','fStatus','fNationality'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fSearch').value = '';
+    filtered = [...ALL_TX];
+    currentPage = 1;
+    renderLedger();
+  }
+
+  function renderLedger() {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page = filtered.slice(start, start + PAGE_SIZE);
+    const body = document.getElementById('ledgerBody');
+    const empty = document.getElementById('emptyLedger');
+
+    if (!filtered.length) { body.innerHTML = ''; empty.classList.remove('hidden'); document.getElementById('ledgerFooter').innerHTML = ''; return; }
+    empty.classList.add('hidden');
+
+    body.innerHTML = page.map(t => `
+      <tr>
+        <td class="mono" style="font-size:12px;">${t.id}</td>
+        <td style="font-weight:600;">${t.user}</td>
+        <td><span class="tx-type ${t.type}">${t.type === 'buy' ? '↓ Buy' : t.type === 'sell' ? '↑ Sell' : '💳 Card'}</span></td>
+        <td>${t.asset}</td>
+        <td class="mono">${t.amount} ${t.type !== 'card' ? t.asset : 'USD'}</td>
+        <td class="mono">${t.currency} ${t.localAmount.toLocaleString()}</td>
+        <td>${t.method}</td>
+        <td style="font-size:12px;">${Format.date(t.date)}</td>
+        <td><span class="status-dot ${t.status}"></span>${t.status.charAt(0).toUpperCase()+t.status.slice(1)}</td>
+      </tr>
+    `).join('');
+
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const volTotal = filtered.filter(t=>t.status==='completed').reduce((s,t)=>s+t.amount,0);
+    document.getElementById('ledgerFooter').innerHTML = `
+      <div class="footer-totals">Showing ${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total} · Completed volume: <span>$${volTotal.toLocaleString()}</span></div>
+      <div class="page-btns">
+        <button class="page-btn" onclick="changePage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>
+        ${Array.from({length:totalPages},(_,i)=>`<button class="page-btn ${i+1===currentPage?'active':''}" onclick="changePage(${i+1})">${i+1}</button>`).join('')}
+        <button class="page-btn" onclick="changePage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>
+      </div>
+    `;
+  }
+
+  function changePage(n) {
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    if (n < 1 || n > totalPages) return;
+    currentPage = n;
+    renderLedger();
+  }
+
+  function exportLedgerCSV() {
+    const headers = 'ID,User,Type,Asset,Amount,Local Amount,Currency,Method,Status,Date,Nationality';
+    const rows = filtered.map(t => `${t.id},${t.user},${t.type},${t.asset},${t.amount},${t.localAmount},${t.currency},${t.method},${t.status},${Format.date(t.date)},${t.nationality}`).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([headers + '\n' + rows], { type: 'text/csv' }));
+    a.download = 'nexvault-ledger.csv';
+    a.click();
+    Toast.success('Exported', 'Ledger CSV downloaded.');
+  }
+
+  function exportLedgerXLSX() {
+    Toast.info('Exporting…', 'Excel export would use SheetJS in production. Downloading CSV as fallback.');
+    exportLedgerCSV();
+  }
+</script>
+</body>
+</html>

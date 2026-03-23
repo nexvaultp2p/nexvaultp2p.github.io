@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pending Queue — NexVault Admin</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .queue-item { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:14px; padding:20px; margin-bottom:16px; transition:border-color .2s; }
+    .queue-item:hover { border-color:var(--gold-500); }
+    .queue-item-header { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+    .queue-id { font-family:'DM Mono',monospace; font-size:13px; color:var(--gold-400); font-weight:700; }
+    .queue-meta { font-size:12px; color:var(--slate-500); }
+    .queue-type-chip { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+    .queue-type-chip.buy { background:rgba(16,185,129,.15); color:var(--emerald); }
+    .queue-type-chip.sell { background:rgba(239,68,68,.15); color:var(--rose); }
+    .queue-type-chip.card { background:rgba(212,163,66,.15); color:var(--gold-400); }
+    .queue-info-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
+    .queue-info-cell { }
+    .queue-info-label { font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:var(--slate-500); margin-bottom:3px; }
+    .queue-info-value { font-size:13px; color:var(--slate-200); font-weight:600; }
+    .queue-info-value.mono { font-family:'DM Mono',monospace; }
+    .queue-info-value.gold { color:var(--gold-400); }
+    .queue-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .btn-approve { background:rgba(16,185,129,.15); color:var(--emerald); border:1px solid rgba(16,185,129,.3); padding:8px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; }
+    .btn-approve:hover { background:var(--emerald); color:var(--navy-950); border-color:var(--emerald); }
+    .btn-reject { background:rgba(239,68,68,.1); color:var(--rose); border:1px solid rgba(239,68,68,.25); padding:8px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; }
+    .btn-reject:hover { background:var(--rose); color:#fff; border-color:var(--rose); }
+    .btn-notify { background:var(--navy-700); color:var(--slate-300); border:1px solid var(--navy-600); padding:8px 16px; border-radius:8px; font-size:13px; cursor:pointer; transition:background .15s; }
+    .btn-notify:hover { background:var(--navy-600); }
+    .screenshot-thumb { width:80px; height:56px; background:var(--navy-900); border-radius:6px; display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;border:1px solid var(--navy-600);transition:border-color .15s; }
+    .screenshot-thumb:hover { border-color:var(--gold-400); }
+    .filters-bar { display:flex; flex-wrap:wrap; gap:10px; background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px; padding:14px; margin-bottom:20px; }
+    .filter-select { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-200); padding:7px 12px; border-radius:8px; font-size:13px; }
+    .filter-select:focus { outline:none; border-color:var(--gold-500); }
+    .empty-queue { text-align:center; padding:64px 20px; background:var(--navy-800); border:1px solid var(--navy-600); border-radius:16px; }
+    .reject-modal-body { padding:4px; }
+    .confirm-box { background:var(--navy-700); border-radius:10px; padding:16px; margin-bottom:12px; }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content" id="pageContent">
+
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1>Pending Queue</h1>
+          <p>Review and verify incoming transactions.</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span id="queueCountBadge" style="font-size:13px;color:var(--amber);font-weight:700;"></span>
+          <button class="btn btn-outline btn-sm" onclick="refreshQueue()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters-bar">
+        <select class="filter-select" id="filterQType" onchange="renderQueue()">
+          <option value="">All Types</option>
+          <option value="buy">Buy</option>
+          <option value="sell">Sell</option>
+          <option value="card">Card</option>
+        </select>
+        <select class="filter-select" id="filterQMethod" onchange="renderQueue()">
+          <option value="">All Methods</option>
+          <option value="eSewa">eSewa</option>
+          <option value="Khalti">Khalti</option>
+          <option value="FonePay">FonePay</option>
+          <option value="PhonePe">PhonePe</option>
+          <option value="UPI">UPI</option>
+          <option value="Bank">Bank</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="approveAll()">✓ Approve All</button>
+      </div>
+
+      <!-- Queue -->
+      <div id="queueContainer"></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Reject Reason Modal -->
+<div class="modal-overlay hidden" id="rejectModal">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <h3>Reject Transaction</h3>
+      <button class="modal-close" onclick="Modal.close('rejectModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-box">
+        <div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--gold-400);" id="rejectTxId"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Rejection Reason *</label>
+        <select class="form-input" id="rejectReason">
+          <option value="">Select reason…</option>
+          <option value="Screenshot unclear">Screenshot unclear or unreadable</option>
+          <option value="Amount mismatch">Amount does not match</option>
+          <option value="Wrong account">Payment sent to wrong account</option>
+          <option value="Duplicate transaction">Duplicate transaction</option>
+          <option value="Suspicious activity">Suspicious activity</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Additional Notes</label>
+        <textarea class="form-input" id="rejectNotes" rows="3" placeholder="Optional message to user…" style="resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="confirmReject()">Reject Transaction</button>
+      <button class="btn btn-outline" onclick="Modal.close('rejectModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Screenshot View Modal -->
+<div class="modal-overlay hidden" id="screenshotModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3>Payment Screenshot</h3>
+      <button class="modal-close" onclick="Modal.close('screenshotModal')">✕</button>
+    </div>
+    <div class="modal-body" style="text-align:center;">
+      <div style="background:var(--navy-700);border-radius:12px;padding:40px;color:var(--slate-500);">
+        <div style="font-size:40px;margin-bottom:12px;">📷</div>
+        <p>In production, the user-uploaded payment screenshot would display here for admin verification.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="Modal.close('screenshotModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+  initAppShell('admin', 'Pending Queue', 'Transaction verification');
+
+  const MOCK_QUEUE = [
+    { id:'NXV-2025-007', user:'Aarav Sharma', email:'aarav@example.com', phone:'+977 9801112233', type:'buy', asset:'USD', amount:300, method:'Khalti', localAmount:40050, currency:'NPR', date:'2025-11-26T10:00Z', nationality:'Nepal' },
+    { id:'NXV-2025-008', user:'Priya Mehta', email:'priya@example.com', phone:'+91 9876543210', type:'card', asset:'VISA $50', amount:50, method:'PhonePe', localAmount:4456, currency:'INR', date:'2025-11-27T09:15Z', nationality:'India' },
+    { id:'NXV-2025-009', user:'Rohan KC', email:'rohan@example.com', phone:'+977 9811234567', type:'sell', asset:'USDT', amount:80, method:'eSewa', localAmount:10638, currency:'NPR', date:'2025-11-27T11:00Z', nationality:'Nepal' },
+  ];
+
+  let queue = [...MOCK_QUEUE];
+  let rejectingId = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = Auth.requireAuth();
+    if (!user?.isAdmin) { window.location.href = 'dashboard.html'; return; }
+    renderQueue();
+  });
+
+  function renderQueue() {
+    const typeFilter = document.getElementById('filterQType').value;
+    const methodFilter = document.getElementById('filterQMethod').value;
+    const filtered = queue.filter(t => {
+      if (typeFilter && t.type !== typeFilter) return false;
+      if (methodFilter && t.method !== methodFilter) return false;
+      return true;
+    });
+
+    document.getElementById('queueCountBadge').textContent = `${queue.length} pending`;
+    const container = document.getElementById('queueContainer');
+
+    if (!filtered.length) {
+      container.innerHTML = `<div class="empty-queue"><div style="font-size:48px;margin-bottom:12px;">🎉</div><h3 style="color:var(--slate-300);">All Clear!</h3><p style="color:var(--slate-500);">No pending transactions match your filter.</p></div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(t => `
+      <div class="queue-item" id="qi_${t.id}">
+        <div class="queue-item-header">
+          <div>
+            <div class="queue-id">${t.id}</div>
+            <div class="queue-meta">${t.user} · ${t.nationality} · ${Format.date(t.date)}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="queue-type-chip ${t.type}">${t.type === 'buy' ? '↓ Buy' : t.type === 'sell' ? '↑ Sell' : '💳 Card'}</span>
+            <span style="font-size:11px;padding:3px 10px;background:rgba(245,158,11,.15);color:var(--amber);border-radius:20px;">⏳ Pending</span>
+          </div>
+        </div>
+        <div class="queue-info-grid">
+          <div class="queue-info-cell"><div class="queue-info-label">Asset</div><div class="queue-info-value">${t.asset}</div></div>
+          <div class="queue-info-cell"><div class="queue-info-label">Amount</div><div class="queue-info-value gold mono">${t.amount} ${t.type !== 'card' ? t.asset : 'USD'}</div></div>
+          <div class="queue-info-cell"><div class="queue-info-label">Local Amount</div><div class="queue-info-value mono">${t.currency} ${t.localAmount.toLocaleString()}</div></div>
+          <div class="queue-info-cell"><div class="queue-info-label">Payment Method</div><div class="queue-info-value">${t.method}</div></div>
+          <div class="queue-info-cell"><div class="queue-info-label">Email</div><div class="queue-info-value" style="font-size:12px;">${t.email}</div></div>
+          <div class="queue-info-cell"><div class="queue-info-label">Phone</div><div class="queue-info-value mono" style="font-size:12px;">${t.phone}</div></div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div class="queue-info-label" style="margin-bottom:8px;">Payment Screenshot</div>
+          <div class="screenshot-thumb" onclick="Modal.open('screenshotModal')">📷</div>
+        </div>
+        <div class="queue-actions">
+          <button class="btn-approve" onclick="approveItem('${t.id}')">✓ Approve</button>
+          <button class="btn-reject" onclick="openRejectModal('${t.id}')">✕ Reject</button>
+          <button class="btn-notify" onclick="notifyWhatsApp('${t.id}')">💬 WhatsApp</button>
+          <button class="btn-notify" onclick="notifyEmail('${t.id}')">📧 Email</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function approveItem(id) {
+    const item = document.getElementById('qi_' + id);
+    if (item) { item.style.opacity = '.5'; item.style.pointerEvents = 'none'; }
+    setTimeout(() => {
+      queue = queue.filter(t => t.id !== id);
+      renderQueue();
+      Toast.success('Approved', `${id} approved. User has been notified.`);
+    }, 600);
+  }
+
+  function openRejectModal(id) {
+    rejectingId = id;
+    document.getElementById('rejectTxId').textContent = id;
+    document.getElementById('rejectReason').value = '';
+    document.getElementById('rejectNotes').value = '';
+    Modal.open('rejectModal');
+  }
+
+  function confirmReject() {
+    const reason = document.getElementById('rejectReason').value;
+    if (!reason) { Toast.error('Required', 'Please select a rejection reason.'); return; }
+    queue = queue.filter(t => t.id !== rejectingId);
+    Modal.close('rejectModal');
+    renderQueue();
+    Toast.error('Rejected', `${rejectingId} has been rejected. User notified.`);
+    rejectingId = null;
+  }
+
+  function approveAll() {
+    if (!queue.length) { Toast.info('Nothing to Approve', 'No pending transactions.'); return; }
+    const count = queue.length;
+    queue = [];
+    renderQueue();
+    Toast.success('All Approved', `${count} transactions approved and users notified.`);
+  }
+
+  function notifyWhatsApp(id) {
+    const tx = queue.find(t => t.id === id);
+    if (!tx) return;
+    const msg = encodeURIComponent(`Hello ${tx.user}, your transaction ${tx.id} for ${tx.currency} ${tx.localAmount.toLocaleString()} is under review. We'll notify you once completed. — NexVault`);
+    window.open(`https://wa.me/${tx.phone.replace(/\D/g,'')}?text=${msg}`, '_blank');
+  }
+
+  function notifyEmail(id) {
+    Toast.info('Email Sent', `Notification email sent to user for ${id}. (Mock in MVP)`);
+  }
+
+  function refreshQueue() {
+    Toast.info('Refreshed', 'Queue refreshed.');
+    renderQueue();
+  }
+</script>
+</body>
+</html>

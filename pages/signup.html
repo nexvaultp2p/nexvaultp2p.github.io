@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/auth.css" />
+  <style>
+    .signup-layout {
+      min-height: 100vh; display: flex; align-items: flex-start;
+      justify-content: center; padding: 40px 20px;
+      position: relative; z-index: 1;
+    }
+    .signup-wrap {
+      width: 100%; max-width: 580px;
+    }
+    .signup-header { text-align: center; margin-bottom: 32px; }
+    .signup-header .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 24px; }
+    .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:500px) { .cols-2 { grid-template-columns: 1fr; } }
+    .card { padding: 32px; }
+    .terms-box {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-md); padding: 14px;
+      max-height: 120px; overflow-y: auto;
+      font-size: 12px; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="signup-layout">
+  <div class="signup-wrap">
+    <div class="signup-header">
+      <a href="../index.html" class="brand" style="display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;margin-bottom:24px;">
+        <div class="logo-mark">N</div>
+        <span class="logo-text">Nex<span>Vault</span></span>
+      </a>
+      <h1>Create your account</h1>
+      <p style="font-size:14px;margin-top:6px;">Join thousands of verified users exchanging safely.</p>
+    </div>
+
+    <!-- Step Progress -->
+    <div class="step-progress" id="stepProgress">
+      <div class="step-item">
+        <div class="step-circle active" id="sc1">1</div>
+        <span class="step-label active" id="sl1">Account Info</span>
+      </div>
+      <div class="step-connector" id="conn1"></div>
+      <div class="step-item">
+        <div class="step-circle" id="sc2">2</div>
+        <span class="step-label" id="sl2">Personal Details</span>
+      </div>
+      <div class="step-connector" id="conn2"></div>
+      <div class="step-item">
+        <div class="step-circle" id="sc3">3</div>
+        <span class="step-label" id="sl3">Confirm</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <!-- STEP 1: Account Info -->
+      <div id="step1">
+        <h3 style="margin-bottom:20px;">Account Information</h3>
+        <form id="form1" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="email">Email Address <span>*</span></label>
+            <div class="input-group">
+              <span class="input-icon">✉️</span>
+              <input type="email" id="email" class="form-control" placeholder="your@email.com" />
+            </div>
+            <div class="form-error" id="email-err"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="username">Username <span>*</span></label>
+            <div class="input-group">
+              <span class="input-icon">@</span>
+              <input type="text" id="username" class="form-control" placeholder="choose_a_username" />
+            </div>
+            <div class="form-hint">3–20 characters. Letters, numbers, and underscores only.</div>
+            <div class="form-error" id="username-err"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">Password <span>*</span></label>
+            <div class="password-wrapper">
+              <input type="password" id="password" class="form-control" placeholder="Create a strong password" />
+              <button type="button" class="password-toggle" data-target="password">👁️</button>
+            </div>
+            <div class="strength-bar" id="strengthBar">
+              <div class="strength-segment"></div>
+              <div class="strength-segment"></div>
+              <div class="strength-segment"></div>
+              <div class="strength-segment"></div>
+            </div>
+            <div class="strength-text" id="strengthText"></div>
+            <div class="form-error" id="password-err"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="confirmPass">Confirm Password <span>*</span></label>
+            <div class="password-wrapper">
+              <input type="password" id="confirmPass" class="form-control" placeholder="Repeat your password" />
+              <button type="button" class="password-toggle" data-target="confirmPass">👁️</button>
+            </div>
+            <div class="form-error" id="confirmPass-err"></div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px;">Continue →</button>
+        </form>
+      </div>
+
+      <!-- STEP 2: Personal Details -->
+      <div id="step2" class="hidden">
+        <h3 style="margin-bottom:20px;">Personal Details</h3>
+        <form id="form2" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="fullName">Full Name (as on ID) <span>*</span></label>
+            <div class="input-group">
+              <span class="input-icon">🪪</span>
+              <input type="text" id="fullName" class="form-control" placeholder="Your legal full name" />
+            </div>
+            <div class="form-hint">Must match exactly with your government-issued ID.</div>
+            <div class="form-error" id="fullName-err"></div>
+          </div>
+
+          <div class="cols-2">
+            <div class="form-group">
+              <label class="form-label" for="phone">Phone Number <span>*</span></label>
+              <div class="input-group">
+                <span class="input-icon">📱</span>
+                <input type="tel" id="phone" class="form-control" placeholder="+977 98..." />
+              </div>
+              <div class="form-error" id="phone-err"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nationality">Nationality <span>*</span></label>
+              <select id="nationality" class="form-control">
+                <option value="">Select country</option>
+                <option value="NP">🇳🇵 Nepal</option>
+                <option value="IN">🇮🇳 India</option>
+              </select>
+              <div class="form-error" id="nationality-err"></div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dob">Date of Birth <span>*</span></label>
+            <input type="date" id="dob" class="form-control" />
+            <div class="form-hint">You must be 18 or older to use NexVault.</div>
+            <div class="form-error" id="dob-err"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="address">Residential Address <span>*</span></label>
+            <textarea id="address" class="form-control" placeholder="Street, City, State/Province, Country" style="min-height:80px;"></textarea>
+            <div class="form-error" id="address-err"></div>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:8px;">
+            <button type="button" class="btn btn-secondary" id="backBtn1" style="flex:1;">← Back</button>
+            <button type="submit" class="btn btn-primary" style="flex:2;">Continue →</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- STEP 3: Confirm & Terms -->
+      <div id="step3" class="hidden">
+        <h3 style="margin-bottom:8px;">Almost there!</h3>
+        <p style="font-size:14px;margin-bottom:24px;">Review your details and agree to the terms to create your account.</p>
+
+        <!-- Summary -->
+        <div id="summaryBox" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;margin-bottom:20px;"></div>
+
+        <div class="form-group">
+          <label class="form-label">Terms &amp; Conditions</label>
+          <div class="terms-box">
+            By creating an account on NexVault, you agree that all exchange transactions are manually processed by our admin team. All rates are set by the admin and are final once accepted. You agree not to submit fraudulent payment proofs. KYC verification is mandatory before any transaction. NexVault is not a licensed bank or financial institution — this is a peer-assisted exchange service. All transactions are subject to verification and may be cancelled at admin discretion. You confirm you are above 18 years of age and your submitted identity information is accurate and truthful. For full terms, visit our <a href="terms.html" target="_blank">Terms of Service</a> page.
+          </div>
+          <label class="form-check" id="termsCheck">
+            <input type="checkbox" id="agreeTerms" />
+            <div class="check-box"></div>
+            <span class="check-label">I have read and agree to the <a href="terms.html" target="_blank">Terms of Service</a> and <a href="privacy.html" target="_blank">Privacy Policy</a></span>
+          </label>
+          <div class="form-error" id="terms-err"></div>
+        </div>
+
+        <label class="form-check" style="margin-bottom:20px;">
+          <input type="checkbox" id="agreeAge" />
+          <div class="check-box"></div>
+          <span class="check-label">I confirm I am at least 18 years of age</span>
+        </label>
+
+        <div style="display:flex;gap:12px;">
+          <button type="button" class="btn btn-secondary" id="backBtn2" style="flex:1;">← Back</button>
+          <button type="button" class="btn btn-primary" id="createBtn" style="flex:2;">Create Account 🎉</button>
+        </div>
+
+        <div class="auth-switch">
+          Already have an account? <a href="login.html">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script>
+onReady(() => {
+  if (Auth.getUser()) window.location.href = 'dashboard.html';
+  initPasswordToggles();
+  initPasswordStrength('password', 'strengthBar', 'strengthText');
+
+  let formData = {};
+  let currentStep = 1;
+
+  function goStep(n) {
+    document.getElementById('step' + currentStep).classList.add('hidden');
+    currentStep = n;
+    document.getElementById('step' + currentStep).classList.remove('hidden');
+    // Update progress circles
+    [1,2,3].forEach(i => {
+      const circle = document.getElementById('sc' + i);
+      const label = document.getElementById('sl' + i);
+      circle.className = 'step-circle' + (i < n ? ' done' : i === n ? ' active' : '');
+      label.className = 'step-label' + (i === n ? ' active' : '');
+      circle.textContent = i < n ? '✓' : i;
+      if (i < 3) {
+        const conn = document.getElementById('conn' + i);
+        conn.className = 'step-connector' + (i < n ? ' done' : '');
+      }
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // STEP 1
+  document.getElementById('form1').addEventListener('submit', (e) => {
+    e.preventDefault();
+    let valid = true;
+    if (!Validator.validate(document.getElementById('email'), Validator.rules.required, Validator.rules.email)) valid = false;
+    if (!Validator.validate(document.getElementById('username'), Validator.rules.required, Validator.rules.username)) valid = false;
+    if (!Validator.validate(document.getElementById('password'), Validator.rules.required, Validator.rules.password)) valid = false;
+
+    const pass = document.getElementById('password').value;
+    const conf = document.getElementById('confirmPass');
+    const confValid = Validator.validate(conf, Validator.rules.required,
+      (v) => v === pass || 'Passwords do not match');
+    if (!confValid) valid = false;
+
+    if (!valid) return;
+    formData.email = document.getElementById('email').value;
+    formData.username = document.getElementById('username').value;
+    formData.password = document.getElementById('password').value;
+    goStep(2);
+  });
+
+  // STEP 2
+  document.getElementById('backBtn1').addEventListener('click', () => goStep(1));
+  document.getElementById('form2').addEventListener('submit', (e) => {
+    e.preventDefault();
+    let valid = true;
+    if (!Validator.validate(document.getElementById('fullName'), Validator.rules.required, Validator.rules.minLen(3))) valid = false;
+    if (!Validator.validate(document.getElementById('phone'), Validator.rules.required, Validator.rules.phone)) valid = false;
+
+    const nat = document.getElementById('nationality');
+    if (!nat.value) { Validator.setError(nat, 'Please select your nationality'); valid = false; }
+    else Validator.setSuccess(nat);
+
+    const dob = document.getElementById('dob');
+    if (!dob.value) { Validator.setError(dob, 'Date of birth is required'); valid = false; }
+    else {
+      const age = (new Date() - new Date(dob.value)) / (1000*60*60*24*365.25);
+      if (age < 18) { Validator.setError(dob, 'You must be at least 18 years old'); valid = false; }
+      else Validator.setSuccess(dob);
+    }
+
+    if (!Validator.validate(document.getElementById('address'), Validator.rules.required, Validator.rules.minLen(10))) valid = false;
+
+    if (!valid) return;
+    formData.fullName = document.getElementById('fullName').value;
+    formData.phone = document.getElementById('phone').value;
+    formData.nationality = document.getElementById('nationality').value;
+    formData.dob = document.getElementById('dob').value;
+    formData.address = document.getElementById('address').value;
+
+    // Build summary
+    const flags = { NP: '🇳🇵 Nepali', IN: '🇮🇳 Indian' };
+    document.getElementById('summaryBox').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Full Name</div><div style="font-size:14px;font-weight:600;margin-top:2px;">${formData.fullName}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Email</div><div style="font-size:14px;font-weight:600;margin-top:2px;">${formData.email}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Username</div><div style="font-size:14px;font-weight:600;margin-top:2px;">@${formData.username}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Phone</div><div style="font-size:14px;font-weight:600;margin-top:2px;">${formData.phone}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Nationality</div><div style="font-size:14px;font-weight:600;margin-top:2px;">${flags[formData.nationality]}</div></div>
+        <div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Date of Birth</div><div style="font-size:14px;font-weight:600;margin-top:2px;">${formData.dob}</div></div>
+      </div>
+    `;
+
+    goStep(3);
+  });
+
+  // STEP 3
+  document.getElementById('backBtn2').addEventListener('click', () => goStep(2));
+  document.getElementById('createBtn').addEventListener('click', async () => {
+    const termsEl = document.getElementById('agreeTerms');
+    const ageEl = document.getElementById('agreeAge');
+    const btn = document.getElementById('createBtn');
+
+    if (!termsEl.checked) {
+      document.getElementById('terms-err').textContent = 'You must agree to the terms to continue';
+      document.getElementById('terms-err').classList.add('visible');
+      return;
+    }
+    document.getElementById('terms-err').classList.remove('visible');
+
+    if (!ageEl.checked) {
+      Toast.error('Age confirmation', 'Please confirm you are 18 or older.');
+      return;
+    }
+
+    btn.innerHTML = '<div class="spinner"></div> Creating account...';
+    btn.disabled = true;
+    await new Promise(r => setTimeout(r, 1500));
+
+    const newUser = {
+      id: 'USR-' + Date.now(),
+      fullName: formData.fullName,
+      username: formData.username,
+      email: formData.email,
+      phone: formData.phone,
+      nationality: formData.nationality,
+      dob: formData.dob,
+      address: formData.address,
+      kycStatus: 'pending',
+      isAdmin: false,
+      joinDate: new Date().toISOString(),
+    };
+
+    Auth.setUser(newUser);
+    Toast.success('Account created!', 'Please complete KYC verification to start trading.');
+    setTimeout(() => { window.location.href = 'kyc.html'; }, 800);
+  });
+});
+</script>
+</body>
+</html>

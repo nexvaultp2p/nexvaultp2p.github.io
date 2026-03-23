@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .admin-stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; margin-bottom:28px; }
+    .admin-stat { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:14px; padding:20px; }
+    .admin-stat-icon { font-size:24px; margin-bottom:10px; }
+    .admin-stat-label { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--slate-500); margin-bottom:4px; }
+    .admin-stat-value { font-family:'DM Mono',monospace; font-size:26px; font-weight:700; color:var(--slate-100); }
+    .admin-stat-sub { font-size:12px; color:var(--slate-500); margin-top:4px; }
+    .admin-stat.gold { border-color:rgba(212,163,66,.3); }
+    .admin-stat.gold .admin-stat-value { color:var(--gold-400); }
+    .admin-stat.green .admin-stat-value { color:var(--emerald); }
+    .admin-stat.amber .admin-stat-value { color:var(--amber); }
+    .admin-stat.rose .admin-stat-value { color:var(--rose); }
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media(max-width:900px){ .two-col { grid-template-columns:1fr; } }
+    .section-card { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:16px; padding:22px; margin-bottom:20px; }
+    .section-title { font-size:14px; font-weight:700; color:var(--slate-100); margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; }
+    .pending-item { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--navy-700); gap:12px; flex-wrap:wrap; }
+    .pending-item:last-child { border-bottom:none; }
+    .pending-info { flex:1; min-width:0; }
+    .pending-id { font-family:'DM Mono',monospace; font-size:12px; color:var(--slate-400); }
+    .pending-name { font-size:13px; font-weight:600; color:var(--slate-200); margin: 2px 0; }
+    .pending-meta { font-size:12px; color:var(--slate-500); }
+    .pending-amount { font-family:'DM Mono',monospace; font-size:14px; font-weight:700; color:var(--gold-400); white-space:nowrap; }
+    .pending-actions { display:flex; gap:6px; }
+    .action-btn-sm { padding:5px 12px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer; border:none; transition:background .15s; }
+    .action-btn-sm.approve { background:rgba(16,185,129,.2); color:var(--emerald); }
+    .action-btn-sm.approve:hover { background:var(--emerald); color:var(--navy-950); }
+    .action-btn-sm.reject { background:rgba(239,68,68,.15); color:var(--rose); }
+    .action-btn-sm.reject:hover { background:var(--rose); color:#fff; }
+    .action-btn-sm.view { background:var(--navy-700); color:var(--slate-300); }
+    .action-btn-sm.view:hover { background:var(--navy-600); }
+    .quick-nav-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+    .quick-nav-item { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px; padding:18px; cursor:pointer; transition:all .15s; text-decoration:none; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+    .quick-nav-item:hover { border-color:var(--gold-400); transform:translateY(-2px); }
+    .quick-nav-icon { font-size:24px; }
+    .quick-nav-label { font-size:13px; font-weight:600; color:var(--slate-200); }
+    .quick-nav-sub { font-size:11px; color:var(--slate-500); }
+    .rate-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--navy-700); }
+    .rate-row:last-child { border-bottom:none; }
+    .rate-name { font-size:13px; color:var(--slate-300); }
+    .rate-value { font-family:'DM Mono',monospace; font-size:14px; color:var(--gold-400); font-weight:700; }
+    .rate-edit-btn { background:var(--navy-700); border:none; padding:4px 10px; border-radius:6px; font-size:11px; color:var(--slate-400); cursor:pointer; }
+    .rate-edit-btn:hover { background:var(--navy-600); color:var(--gold-400); }
+    .admin-alert { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25); border-radius:10px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:10px; font-size:13px; color:var(--amber); }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content" id="pageContent">
+
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1>Admin Dashboard</h1>
+          <p id="adminGreet">Welcome back, admin.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <a href="admin-transactions.html" class="btn btn-primary btn-sm">⚡ Pending Queue</a>
+        </div>
+      </div>
+
+      <div class="admin-alert">⚠️ MVP Mode — All actions are simulated. No real payments are processed.</div>
+
+      <!-- Stats -->
+      <div class="admin-stat-grid">
+        <div class="admin-stat gold"><div class="admin-stat-icon">💰</div><div class="admin-stat-label">Total Volume (USD)</div><div class="admin-stat-value">$24,650</div><div class="admin-stat-sub">↑ 18% this month</div></div>
+        <div class="admin-stat amber"><div class="admin-stat-icon">⏳</div><div class="admin-stat-label">Pending Transactions</div><div class="admin-stat-value" id="pendingCount">3</div><div class="admin-stat-sub">Needs verification</div></div>
+        <div class="admin-stat green"><div class="admin-stat-icon">✅</div><div class="admin-stat-label">Completed Today</div><div class="admin-stat-value">12</div><div class="admin-stat-sub">+3 from yesterday</div></div>
+        <div class="admin-stat"><div class="admin-stat-icon">👥</div><div class="admin-stat-label">Total Users</div><div class="admin-stat-value">47</div><div class="admin-stat-sub">5 pending KYC</div></div>
+        <div class="admin-stat rose"><div class="admin-stat-icon">🔍</div><div class="admin-stat-label">KYC Pending Review</div><div class="admin-stat-value">5</div><div class="admin-stat-sub">Awaiting approval</div></div>
+        <div class="admin-stat"><div class="admin-stat-icon">💳</div><div class="admin-stat-label">Cards Issued</div><div class="admin-stat-value">18</div><div class="admin-stat-sub">2 pending activation</div></div>
+      </div>
+
+      <div class="two-col">
+        <!-- Pending Transactions -->
+        <div>
+          <div class="section-card">
+            <div class="section-title">
+              <span>⏳ Pending Transactions</span>
+              <a href="admin-transactions.html" style="font-size:12px;color:var(--gold-400);text-decoration:none;">View All →</a>
+            </div>
+            <div id="pendingTxList"></div>
+          </div>
+        </div>
+
+        <!-- Right Column -->
+        <div>
+          <!-- Live Rates -->
+          <div class="section-card">
+            <div class="section-title">
+              <span>💱 Exchange Rates</span>
+              <a href="admin-settings.html" style="font-size:12px;color:var(--gold-400);text-decoration:none;">Edit →</a>
+            </div>
+            <div id="ratesList"></div>
+          </div>
+
+          <!-- Quick Navigation -->
+          <div class="section-card">
+            <div class="section-title"><span>⚡ Quick Actions</span></div>
+            <div class="quick-nav-grid">
+              <a class="quick-nav-item" href="admin-transactions.html">
+                <div class="quick-nav-icon">📋</div>
+                <div class="quick-nav-label">Pending Queue</div>
+                <div class="quick-nav-sub">Verify transactions</div>
+              </a>
+              <a class="quick-nav-item" href="admin-all.html">
+                <div class="quick-nav-icon">📊</div>
+                <div class="quick-nav-label">All Transactions</div>
+                <div class="quick-nav-sub">Full ledger</div>
+              </a>
+              <a class="quick-nav-item" href="admin-users.html">
+                <div class="quick-nav-icon">👥</div>
+                <div class="quick-nav-label">User Management</div>
+                <div class="quick-nav-sub">KYC & accounts</div>
+              </a>
+              <a class="quick-nav-item" href="admin-settings.html">
+                <div class="quick-nav-icon">⚙️</div>
+                <div class="quick-nav-label">Settings</div>
+                <div class="quick-nav-sub">Rates & accounts</div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Verify Transaction Modal -->
+<div class="modal-overlay hidden" id="verifyModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h3>Verify Transaction</h3>
+      <button class="modal-close" onclick="Modal.close('verifyModal')">✕</button>
+    </div>
+    <div class="modal-body" id="verifyModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="background:var(--emerald);" onclick="approveModal()">✓ Approve</button>
+      <button class="btn btn-danger" onclick="rejectModal()">✕ Reject</button>
+      <button class="btn btn-outline" onclick="Modal.close('verifyModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+  initAppShell('admin', 'Admin Dashboard', 'System overview');
+
+  const MOCK_PENDING = [
+    { id:'NXV-2025-007', user:'Aarav Sharma', type:'buy', asset:'USD', amount:300, method:'Khalti', localAmount:'NPR 40,050', date:'2025-11-26T10:00Z' },
+    { id:'NXV-2025-008', user:'Priya Mehta', type:'card', asset:'VISA $50', amount:50, method:'PhonePe', localAmount:'INR 4,456', date:'2025-11-27T09:15Z' },
+    { id:'NXV-2025-009', user:'Rohan KC', type:'sell', asset:'USDT', amount:80, method:'eSewa', localAmount:'NPR 10,638', date:'2025-11-27T11:00Z' },
+  ];
+
+  const RATES = [
+    { pair:'USD / NPR', value:'133.20', id:'usd_npr' },
+    { pair:'USD / INR', value:'83.45', id:'usd_inr' },
+    { pair:'BTC / USD', value:'67,842', id:'btc_usd' },
+    { pair:'ETH / USD', value:'3,521', id:'eth_usd' },
+    { pair:'USDT / USD', value:'1.00', id:'usdt_usd' },
+  ];
+
+  let pendingList = [...MOCK_PENDING];
+  let activeModalId = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = Auth.requireAuth();
+    if (!user?.isAdmin) { window.location.href = 'dashboard.html'; return; }
+    document.getElementById('adminGreet').textContent = `Welcome back, ${user.fullName || user.username}.`;
+    renderPending();
+    renderRates();
+  });
+
+  function renderPending() {
+    const container = document.getElementById('pendingTxList');
+    document.getElementById('pendingCount').textContent = pendingList.length;
+    if (!pendingList.length) {
+      container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--slate-500);">🎉 All clear! No pending transactions.</div>';
+      return;
+    }
+    container.innerHTML = pendingList.map(t => `
+      <div class="pending-item">
+        <div class="pending-info">
+          <div class="pending-id">${t.id}</div>
+          <div class="pending-name">${t.user} · ${t.type.toUpperCase()}</div>
+          <div class="pending-meta">${t.asset} via ${t.method} · ${Format.date(t.date)}</div>
+        </div>
+        <div class="pending-amount">${t.localAmount}</div>
+        <div class="pending-actions">
+          <button class="action-btn-sm view" onclick="viewTx('${t.id}')">View</button>
+          <button class="action-btn-sm approve" onclick="quickApprove('${t.id}')">✓</button>
+          <button class="action-btn-sm reject" onclick="quickReject('${t.id}')">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderRates() {
+    document.getElementById('ratesList').innerHTML = RATES.map(r => `
+      <div class="rate-row">
+        <span class="rate-name">${r.pair}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="rate-value">${r.value}</span>
+          <button class="rate-edit-btn" onclick="window.location.href='admin-settings.html'">Edit</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function viewTx(id) {
+    const tx = pendingList.find(t => t.id === id);
+    if (!tx) return;
+    activeModalId = id;
+    document.getElementById('verifyModalBody').innerHTML = `
+      <div style="background:var(--navy-700);border-radius:10px;padding:16px;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><div style="font-size:11px;color:var(--slate-500);margin-bottom:2px;">TX ID</div><div style="font-family:'DM Mono',monospace;font-size:13px;">${tx.id}</div></div>
+          <div><div style="font-size:11px;color:var(--slate-500);margin-bottom:2px;">User</div><div style="font-size:13px;">${tx.user}</div></div>
+          <div><div style="font-size:11px;color:var(--slate-500);margin-bottom:2px;">Type</div><div style="font-size:13px;font-weight:700;">${tx.type.toUpperCase()}</div></div>
+          <div><div style="font-size:11px;color:var(--slate-500);margin-bottom:2px;">Asset</div><div style="font-size:13px;">${tx.asset}</div></div>
+          <div><div style="font-size:11px;color:var(--slate-500);margin-bottom:2px;">Method</div><div style="font-size:13px;">${tx.method}</div></div>
+          <div><div style="font-size:11px;color:var(--slate-500);margin-bottom:2px;">Local Amount</div><div style="font-size:13px;font-weight:700;color:var(--gold-400);">${tx.localAmount}</div></div>
+        </div>
+      </div>
+      <div style="background:var(--navy-700);border-radius:10px;padding:16px;">
+        <div style="font-size:12px;color:var(--slate-500);margin-bottom:8px;">Payment Screenshot (mock)</div>
+        <div style="background:var(--navy-900);border-radius:8px;padding:32px;text-align:center;color:var(--slate-500);font-size:13px;">📷 Screenshot preview would appear here in production</div>
+      </div>
+    `;
+    Modal.open('verifyModal');
+  }
+
+  function approveModal() {
+    if (!activeModalId) return;
+    doApprove(activeModalId);
+    Modal.close('verifyModal');
+  }
+
+  function rejectModal() {
+    if (!activeModalId) return;
+    doReject(activeModalId);
+    Modal.close('verifyModal');
+  }
+
+  function quickApprove(id) { doApprove(id); }
+  function quickReject(id) { doReject(id); }
+
+  function doApprove(id) {
+    pendingList = pendingList.filter(t => t.id !== id);
+    renderPending();
+    Toast.success('Approved', `Transaction ${id} has been approved and user notified.`);
+  }
+
+  function doReject(id) {
+    pendingList = pendingList.filter(t => t.id !== id);
+    renderPending();
+    Toast.error('Rejected', `Transaction ${id} has been rejected.`);
+  }
+</script>
+</body>
+</html>

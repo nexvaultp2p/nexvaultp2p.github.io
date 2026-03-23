@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KYC Verification — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <link rel="stylesheet" href="../css/auth.css" />
+  <style>
+    .kyc-card { background: var(--surface-1); border: 1px solid var(--border-light); border-radius: var(--radius-xl); padding: 32px; margin-bottom: 16px; }
+    .alert-info { background: rgba(240,192,64,0.07); border: 1px solid var(--border-gold); border-radius: var(--radius-md); padding: 14px 16px; display:flex; gap:12px; margin-bottom:24px; }
+    .alert-info .icon { font-size:20px; flex-shrink:0; }
+    .alert-info p { font-size:13px; margin:0; line-height:1.6; }
+    .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media(max-width:600px) { .upload-grid { grid-template-columns: 1fr; } }
+    .upload-section h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .upload-section p { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+<div class="kyc-layout">
+  <div class="kyc-container">
+    <div class="kyc-header">
+      <div class="logo-wrap">
+        <div class="logo-mark">N</div>
+        <span class="logo-text">Nex<span>Vault</span></span>
+      </div>
+      <span class="badge badge-amber" style="margin:0 auto 16px;">🔒 KYC Required</span>
+      <h1>Verify Your Identity</h1>
+      <p>To protect our platform and comply with regulations, we require identity verification before enabling transactions.</p>
+    </div>
+
+    <!-- Step progress -->
+    <div class="step-progress" id="kycSteps">
+      <div class="step-item">
+        <div class="step-circle active" id="ks1">1</div>
+        <span class="step-label active" id="kl1">Choose ID</span>
+      </div>
+      <div class="step-connector" id="kconn1"></div>
+      <div class="step-item">
+        <div class="step-circle" id="ks2">2</div>
+        <span class="step-label" id="kl2">Upload ID</span>
+      </div>
+      <div class="step-connector" id="kconn2"></div>
+      <div class="step-item">
+        <div class="step-circle" id="ks3">3</div>
+        <span class="step-label" id="kl3">Proof of Address</span>
+      </div>
+      <div class="step-connector" id="kconn3"></div>
+      <div class="step-item">
+        <div class="step-circle" id="ks4">4</div>
+        <span class="step-label" id="kl4">Submit</span>
+      </div>
+    </div>
+
+    <!-- KYC Step 1: Choose doc type -->
+    <div id="kstep1">
+      <div class="kyc-card">
+        <h3 style="margin-bottom:6px;">Select your primary ID document</h3>
+        <p style="font-size:14px;margin-bottom:20px;">Choose which document you'll use for identity verification.</p>
+
+        <div class="doc-option" data-doc="passport" onclick="selectDoc(this)">
+          <span class="doc-icon">🛂</span>
+          <div>
+            <h4>Passport</h4>
+            <p>International travel document. Accepted from any country.</p>
+          </div>
+          <div class="check">✓</div>
+        </div>
+        <div class="doc-option" data-doc="national_id" onclick="selectDoc(this)">
+          <span class="doc-icon">🪪</span>
+          <div>
+            <h4>National ID Card</h4>
+            <p>Government-issued national identity card (Citizenship, Aadhar, etc.)</p>
+          </div>
+          <div class="check"></div>
+        </div>
+        <div class="doc-option" data-doc="driving_license" onclick="selectDoc(this)">
+          <span class="doc-icon">🚗</span>
+          <div>
+            <h4>Driving License</h4>
+            <p>Valid government-issued driving license.</p>
+          </div>
+          <div class="check"></div>
+        </div>
+
+        <div class="form-error" id="doc-err" style="margin-top:10px;"></div>
+      </div>
+      <button class="btn btn-primary btn-block btn-lg" onclick="kycNext(1)">Continue →</button>
+    </div>
+
+    <!-- KYC Step 2: Upload ID -->
+    <div id="kstep2" class="hidden">
+      <div class="kyc-card">
+        <h3 style="margin-bottom:6px;">Upload your <span id="docTypeName">ID Document</span></h3>
+        <p style="font-size:14px;margin-bottom:20px;">Upload clear, readable photos of both sides. File must be JPG, PNG, or PDF under 5MB.</p>
+
+        <div class="alert-info">
+          <span class="icon">💡</span>
+          <p>Make sure the document is fully visible, not expired, and all text is legible. Blurry or partial images will be rejected.</p>
+        </div>
+
+        <div class="upload-grid">
+          <div class="upload-section">
+            <h4>Front Side <span style="color:var(--rose)">*</span></h4>
+            <p>The side with your photo and name.</p>
+            <div class="file-upload-area" id="front-area" onclick="document.getElementById('frontFile').click()">
+              <div class="upload-icon">📄</div>
+              <p style="font-weight:600;font-size:14px;">Click to upload front</p>
+              <p class="upload-hint">JPG, PNG or PDF · Max 5MB</p>
+            </div>
+            <div id="front-preview"></div>
+            <input type="file" id="frontFile" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleFileChange('frontFile','front-preview','front-area')" />
+            <div class="form-error" id="front-err"></div>
+          </div>
+          <div class="upload-section">
+            <h4>Back Side <span style="color:var(--text-muted);font-weight:400;font-size:12px;">(if applicable)</span></h4>
+            <p>The reverse side with additional info.</p>
+            <div class="file-upload-area" id="back-area" onclick="document.getElementById('backFile').click()">
+              <div class="upload-icon">📄</div>
+              <p style="font-weight:600;font-size:14px;">Click to upload back</p>
+              <p class="upload-hint">JPG, PNG or PDF · Max 5MB</p>
+            </div>
+            <div id="back-preview"></div>
+            <input type="file" id="backFile" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleFileChange('backFile','back-preview','back-area')" />
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-secondary" style="flex:1" onclick="kycBack(2)">← Back</button>
+        <button class="btn btn-primary" style="flex:2" onclick="kycNext(2)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- KYC Step 3: Proof of address -->
+    <div id="kstep3" class="hidden">
+      <div class="kyc-card">
+        <h3 style="margin-bottom:6px;">Proof of Residency</h3>
+        <p style="font-size:14px;margin-bottom:20px;">Submit a document confirming your current residential address.</p>
+
+        <div class="alert-info">
+          <span class="icon">🏠</span>
+          <p>Accepted documents: Bank statement, utility bill (electricity/water/gas), or government letter — dated within the last 3 months, showing your name and address.</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Document Type <span>*</span></label>
+          <select id="addressDocType" class="form-control">
+            <option value="">Select document type</option>
+            <option value="bank_statement">Bank Statement</option>
+            <option value="electricity_bill">Electricity Bill</option>
+            <option value="water_bill">Water Bill</option>
+            <option value="gas_bill">Gas Bill</option>
+            <option value="govt_letter">Government Letter</option>
+            <option value="telecom_bill">Telecom/Internet Bill</option>
+          </select>
+          <div class="form-error" id="addressDocType-err"></div>
+        </div>
+
+        <div class="upload-section">
+          <h4>Upload Document <span style="color:var(--rose)">*</span></h4>
+          <p>Clear scan or photo. All details must be visible.</p>
+          <div class="file-upload-area" id="addr-area" onclick="document.getElementById('addrFile').click()">
+            <div class="upload-icon">🏦</div>
+            <p style="font-weight:600;font-size:14px;">Click to upload proof of address</p>
+            <p class="upload-hint">JPG, PNG or PDF · Max 5MB</p>
+          </div>
+          <div id="addr-preview"></div>
+          <input type="file" id="addrFile" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleFileChange('addrFile','addr-preview','addr-area')" />
+          <div class="form-error" id="addr-err"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-secondary" style="flex:1" onclick="kycBack(3)">← Back</button>
+        <button class="btn btn-primary" style="flex:2" onclick="kycNext(3)">Continue →</button>
+      </div>
+    </div>
+
+    <!-- KYC Step 4: Submit -->
+    <div id="kstep4" class="hidden">
+      <div class="kyc-card">
+        <h3 style="margin-bottom:6px;">Review &amp; Submit</h3>
+        <p style="font-size:14px;margin-bottom:20px;">Please review your submission. Once submitted, our team will verify your documents within 24–48 hours.</p>
+
+        <div id="kycSummary" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;margin-bottom:20px;"></div>
+
+        <div class="alert-info" style="border-color:var(--border-gold);">
+          <span class="icon">⏱️</span>
+          <p><strong>Verification timeline:</strong> Our team reviews submissions within 24–48 hours. You'll be notified via email once verified. Until then, transactions are restricted.</p>
+        </div>
+
+        <label class="form-check">
+          <input type="checkbox" id="kycAgree" />
+          <div class="check-box"></div>
+          <span class="check-label">I confirm that all documents submitted are genuine and the information is accurate. I understand that submitting false documents may result in permanent account suspension.</span>
+        </label>
+        <div class="form-error" id="kycAgree-err" style="margin-top:6px;"></div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <button class="btn btn-secondary" style="flex:1" onclick="kycBack(4)">← Back</button>
+        <button class="btn btn-primary" style="flex:2" id="submitKycBtn" onclick="submitKYC()">Submit for Verification 🚀</button>
+      </div>
+    </div>
+
+    <p style="text-align:center;font-size:12px;color:var(--text-muted);margin-top:20px;">
+      Already verified? <a href="dashboard.html">Go to Dashboard</a> · 
+      <a href="login.html">Switch Account</a>
+    </p>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script>
+let selectedDoc = null;
+let kycStep = 1;
+
+function selectDoc(el) {
+  document.querySelectorAll('.doc-option').forEach(o => { o.classList.remove('selected'); o.querySelector('.check').textContent = ''; });
+  el.classList.add('selected');
+  el.querySelector('.check').textContent = '✓';
+  selectedDoc = el.dataset.doc;
+  const names = { passport:'Passport', national_id:'National ID Card', driving_license:'Driving License' };
+  document.getElementById('docTypeName').textContent = names[selectedDoc];
+}
+
+function handleFileChange(inputId, previewId, areaId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  const area = document.getElementById(areaId);
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const size = file.size > 1048576 ? `${(file.size/1048576).toFixed(1)} MB` : `${(file.size/1024).toFixed(0)} KB`;
+  const ext = file.name.split('.').pop().toUpperCase();
+  const icons = {PDF:'📄',JPG:'🖼️',JPEG:'🖼️',PNG:'🖼️'};
+  preview.innerHTML = `
+    <div class="file-preview">
+      <span class="file-icon">${icons[ext]||'📎'}</span>
+      <div><div class="file-name">${file.name}</div><div class="file-size">${size} · ${ext}</div></div>
+      <button class="remove-file" onclick="removeFile('${inputId}','${previewId}','${areaId}')">✕</button>
+    </div>`;
+  area.style.display = 'none';
+}
+function removeFile(inputId, previewId, areaId) {
+  document.getElementById(inputId).value = '';
+  document.getElementById(previewId).innerHTML = '';
+  document.getElementById(areaId).style.display = '';
+}
+
+function setKycProgress(n) {
+  kycStep = n;
+  [1,2,3,4].forEach(i => {
+    const circle = document.getElementById('ks' + i);
+    const label = document.getElementById('kl' + i);
+    circle.className = 'step-circle' + (i < n ? ' done' : i === n ? ' active' : '');
+    label.className = 'step-label' + (i === n ? ' active' : '');
+    circle.textContent = i < n ? '✓' : i;
+    if (i < 4) {
+      const conn = document.getElementById('kconn' + i);
+      conn.className = 'step-connector' + (i < n ? ' done' : '');
+    }
+  });
+  [1,2,3,4].forEach(i => {
+    document.getElementById('kstep' + i).classList.toggle('hidden', i !== n);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function kycNext(from) {
+  if (from === 1) {
+    if (!selectedDoc) {
+      document.getElementById('doc-err').textContent = 'Please select a document type';
+      document.getElementById('doc-err').classList.add('visible');
+      return;
+    }
+    document.getElementById('doc-err').classList.remove('visible');
+    setKycProgress(2);
+  } else if (from === 2) {
+    if (!document.getElementById('frontFile').files[0]) {
+      document.getElementById('front-err').textContent = 'Please upload the front side of your document';
+      document.getElementById('front-err').classList.add('visible');
+      return;
+    }
+    document.getElementById('front-err').classList.remove('visible');
+    setKycProgress(3);
+  } else if (from === 3) {
+    const docType = document.getElementById('addressDocType');
+    if (!docType.value) { Validator.setError(docType, 'Please select a document type'); return; }
+    if (!document.getElementById('addrFile').files[0]) {
+      document.getElementById('addr-err').textContent = 'Please upload your proof of address';
+      document.getElementById('addr-err').classList.add('visible');
+      return;
+    }
+    document.getElementById('addr-err').classList.remove('visible');
+
+    // Build summary
+    const docNames = { passport:'Passport', national_id:'National ID Card', driving_license:'Driving License' };
+    const addrNames = { bank_statement:'Bank Statement', electricity_bill:'Electricity Bill', water_bill:'Water Bill', gas_bill:'Gas Bill', govt_letter:'Government Letter', telecom_bill:'Telecom/Internet Bill' };
+    const frontName = document.getElementById('frontFile').files[0]?.name || 'N/A';
+    const backName = document.getElementById('backFile').files[0]?.name || '(Not provided)';
+    const addrName = document.getElementById('addrFile').files[0]?.name || 'N/A';
+    document.getElementById('kycSummary').innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <span style="font-size:13px;color:var(--text-muted);">Primary ID Type</span>
+          <strong style="font-size:14px;">${docNames[selectedDoc]}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <span style="font-size:13px;color:var(--text-muted);">Front Document</span>
+          <span style="font-size:13px;color:var(--emerald);">✅ ${frontName}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border);">
+          <span style="font-size:13px;color:var(--text-muted);">Back Document</span>
+          <span style="font-size:13px;color:${backName === '(Not provided)' ? 'var(--text-muted)' : 'var(--emerald)'};">${backName === '(Not provided)' ? backName : '✅ ' + backName}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:var(--text-muted);">Proof of Address</span>
+          <span style="font-size:13px;color:var(--emerald);">✅ ${addrNames[docType.value]} · ${addrName}</span>
+        </div>
+      </div>`;
+    setKycProgress(4);
+  }
+}
+
+function kycBack(from) {
+  setKycProgress(from - 1);
+}
+
+async function submitKYC() {
+  if (!document.getElementById('kycAgree').checked) {
+    document.getElementById('kycAgree-err').textContent = 'You must confirm the accuracy of your documents';
+    document.getElementById('kycAgree-err').classList.add('visible');
+    return;
+  }
+  const btn = document.getElementById('submitKycBtn');
+  btn.innerHTML = '<div class="spinner"></div> Submitting...';
+  btn.disabled = true;
+
+  await new Promise(r => setTimeout(r, 2000));
+
+  // Update user KYC status to 'under_review'
+  const user = Auth.getUser();
+  if (user) {
+    user.kycStatus = 'under_review';
+    // For demo: auto-approve after 2 more seconds
+    Auth.setUser(user);
+  }
+
+  Toast.success('Submitted!', 'Your KYC documents are under review. Estimated: 24-48 hours.');
+
+  // For demo purposes, auto-approve and redirect
+  setTimeout(() => {
+    const user2 = Auth.getUser();
+    if (user2) { user2.kycStatus = 'verified'; Auth.setUser(user2); }
+    window.location.href = 'dashboard.html';
+  }, 1500);
+}
+
+onReady(() => {
+  Auth.requireAuth();
+  const user = Auth.getUser();
+  if (user && user.kycStatus === 'verified') {
+    window.location.href = 'dashboard.html';
+  }
+  // Pre-select passport
+  const passportOpt = document.querySelector('.doc-option[data-doc="passport"]');
+  if (passportOpt) selectDoc(passportOpt);
+});
+</script>
+</body>
+</html>

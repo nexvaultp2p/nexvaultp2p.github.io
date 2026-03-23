@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buy USD / Crypto — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .exchange-card { background: var(--surface-1); border: 1px solid var(--border-light); border-radius: var(--radius-xl); padding: 28px; }
+    .amount-input-wrap {
+      background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg);
+      padding: 16px 20px; margin-bottom: 8px;
+    }
+    .amount-input-wrap label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); display: block; margin-bottom: 6px; }
+    .amount-input-wrap input {
+      background: none; border: none; outline: none; font-family: 'DM Mono', monospace;
+      font-size: 32px; font-weight: 500; color: var(--text-primary); width: 100%;
+    }
+    .amount-input-wrap input::placeholder { color: var(--slate-500); }
+    .swap-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--surface-0); border: 2px solid var(--border-light);
+      cursor: pointer; font-size: 18px; margin: 8px auto;
+      transition: all var(--transition);
+    }
+    .swap-btn:hover { border-color: var(--gold-400); transform: rotate(180deg); }
+    .rate-display { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: var(--gold-glow); border: 1px solid var(--border-gold); border-radius: var(--radius-md); margin-bottom: 20px; }
+    .rate-display .label { font-size: 12px; color: var(--text-muted); }
+    .rate-display .value { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; color: var(--gold-400); }
+    .method-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+    .method-card {
+      background: var(--surface-2); border: 2px solid var(--border); border-radius: var(--radius-md);
+      padding: 14px 12px; cursor: pointer; transition: all var(--transition);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .method-card:hover { border-color: var(--border-light); }
+    .method-card.selected { border-color: var(--gold-400); background: var(--gold-glow); }
+    .method-card .method-icon { font-size: 22px; flex-shrink: 0; }
+    .method-card .method-name { font-size: 13px; font-weight: 600; }
+    .method-card .method-sub { font-size: 11px; color: var(--text-muted); }
+    .method-card .check-mark { margin-left: auto; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    .method-card.selected .check-mark { background: var(--gold-400); border-color: var(--gold-400); color: var(--navy-950); font-weight: 800; }
+    .summary-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .summary-row:last-child { border-bottom: none; }
+    .summary-row .s-label { font-size: 13px; color: var(--text-muted); }
+    .summary-row .s-val { font-size: 14px; font-weight: 600; }
+    .order-sidebar { position: sticky; top: calc(var(--topbar-height) + 20px); }
+    @media(max-width:900px) { .method-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div class="page-header">
+        <h1>Buy USD / Crypto</h1>
+        <p>Enter the amount you want to buy and pay with your local payment method.</p>
+      </div>
+
+      <div class="content-grid">
+        <!-- Left: Exchange form -->
+        <div>
+          <!-- Step 1: What to buy -->
+          <div class="exchange-card" style="margin-bottom:16px;">
+            <h3 style="margin-bottom:4px;">Step 1 — What do you want to buy?</h3>
+            <p style="font-size:13px;margin-bottom:20px;">Select the asset you want to receive.</p>
+            <div class="pill-group" id="assetGroup">
+              <div class="pill selected" data-value="USD" onclick="selectAsset(this)">💵 USD (Cash)</div>
+              <div class="pill" data-value="USDT" onclick="selectAsset(this)">🟢 USDT (Tether)</div>
+              <div class="pill" data-value="BTC" onclick="selectAsset(this)">₿ Bitcoin</div>
+              <div class="pill" data-value="ETH" onclick="selectAsset(this)">Ξ Ethereum</div>
+            </div>
+          </div>
+
+          <!-- Step 2: Amount -->
+          <div class="exchange-card" style="margin-bottom:16px;">
+            <h3 style="margin-bottom:4px;">Step 2 — How much?</h3>
+            <p style="font-size:13px;margin-bottom:16px;">Enter the USD amount or local currency amount.</p>
+            <div class="amount-input-wrap">
+              <label>You Pay (<span id="localCurrencyLabel">NPR</span>)</label>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:20px;color:var(--text-muted);" id="localFlag">🇳🇵</span>
+                <input type="number" id="localAmount" placeholder="0.00" min="0" oninput="calcFromLocal()" />
+              </div>
+            </div>
+            <div class="swap-btn" onclick="swapInputs()" title="Swap">⇅</div>
+            <div class="amount-input-wrap">
+              <label>You Receive (<span id="foreignCurrencyLabel">USD</span>)</label>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:20px;color:var(--text-muted);" id="assetFlag">💵</span>
+                <input type="number" id="foreignAmount" placeholder="0.00" min="0" oninput="calcFromForeign()" />
+              </div>
+            </div>
+            <div class="rate-display">
+              <span class="label">Exchange Rate</span>
+              <span class="value" id="rateDisplay">1 USD = 133.20 NPR</span>
+              <span class="badge badge-gold">Admin Rate</span>
+            </div>
+            <div class="form-error" id="amount-err"></div>
+          </div>
+
+          <!-- Step 3: Payment method -->
+          <div class="exchange-card" style="margin-bottom:16px;">
+            <h3 style="margin-bottom:4px;">Step 3 — Payment Method</h3>
+            <p style="font-size:13px;margin-bottom:16px;">Choose how you will send payment.</p>
+            <div class="method-grid" id="paymentMethods">
+              <!-- Populated by JS based on nationality -->
+            </div>
+            <div class="form-error" id="method-err" style="margin-top:10px;"></div>
+          </div>
+
+          <!-- Step 4: Receiving wallet/details -->
+          <div class="exchange-card" style="margin-bottom:16px;" id="receivingSection">
+            <h3 style="margin-bottom:4px;">Step 4 — Receiving Details</h3>
+            <p style="font-size:13px;margin-bottom:16px;" id="receivingDesc">Enter where to send your USD.</p>
+            <div id="receivingFields">
+              <!-- Populated by JS based on asset -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Order summary -->
+        <div class="order-sidebar">
+          <div class="exchange-card card-gold" style="margin-bottom:16px;">
+            <h3 style="margin-bottom:16px;">Order Summary</h3>
+            <div class="summary-row"><span class="s-label">Asset</span><span class="s-val" id="sum-asset">USD</span></div>
+            <div class="summary-row"><span class="s-label">You Pay</span><span class="s-val" id="sum-pay">—</span></div>
+            <div class="summary-row"><span class="s-label">You Receive</span><span class="s-val" id="sum-receive">—</span></div>
+            <div class="summary-row"><span class="s-label">Rate</span><span class="s-val" id="sum-rate">1 USD = 133.20 NPR</span></div>
+            <div class="summary-row"><span class="s-label">Payment Method</span><span class="s-val" id="sum-method">—</span></div>
+            <div class="summary-row" style="border-bottom:none;padding-top:14px;">
+              <span class="s-label" style="font-size:12px;color:var(--text-muted);">Processing</span>
+              <span class="badge badge-amber">Manual · 1-4 hrs</span>
+            </div>
+
+            <hr class="divider" />
+            <button class="btn btn-primary btn-block btn-lg" id="proceedBtn" onclick="proceedToPayment()">
+              Proceed to Payment →
+            </button>
+            <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px;">
+              By proceeding, you accept the current admin exchange rate. Rates are locked upon submission.
+            </p>
+          </div>
+
+          <div class="card" style="padding:16px;">
+            <h4 style="font-size:13px;margin-bottom:12px;">🛡️ How it works</h4>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--text-secondary);">
+                <span>1️⃣</span><span>You submit order and get admin payment details</span>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--text-secondary);">
+                <span>2️⃣</span><span>You pay via selected method and upload screenshot</span>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--text-secondary);">
+                <span>3️⃣</span><span>Admin verifies payment and releases your funds</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Details Modal -->
+<div class="modal-overlay hidden" id="paymentModal">
+  <div class="modal modal-lg">
+    <button class="modal-close" onclick="Modal.close('paymentModal')">✕</button>
+    <h2>💳 Send Payment</h2>
+    <p>Send the exact amount to the details below, then upload your payment screenshot.</p>
+
+    <div id="adminPayDetails" style="background:var(--surface-2);border:1px solid var(--border-gold);border-radius:var(--radius-md);padding:20px;margin-bottom:20px;">
+      <!-- filled by JS -->
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Upload Payment Screenshot <span>*</span></label>
+      <div class="file-upload-area" id="ss-area" onclick="document.getElementById('ssFile').click()">
+        <div class="upload-icon">📸</div>
+        <p style="font-weight:600;">Click to upload screenshot</p>
+        <p class="upload-hint">JPG or PNG · Max 5MB</p>
+      </div>
+      <div id="ss-preview"></div>
+      <input type="file" id="ssFile" accept=".jpg,.jpeg,.png" style="display:none" onchange="handleFileChange('ssFile','ss-preview','ss-area')" />
+      <div class="form-error" id="ss-err"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <textarea class="form-control" id="txNotes" placeholder="Any additional info for the admin..." style="min-height:70px;"></textarea>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:4px;">
+      <button class="btn btn-secondary" style="flex:1" onclick="Modal.close('paymentModal')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" id="submitPayBtn" onclick="submitPayment()">Submit & Notify Admin 🚀</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal-overlay hidden" id="confirmModal">
+  <div class="modal">
+    <h2>🎉 Transaction Submitted!</h2>
+    <p>Your payment proof has been sent to the admin. You'll be notified once verified.</p>
+    <div id="txConfirmDetails" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;margin:16px 0;"></div>
+    <button class="btn btn-primary btn-block" onclick="window.location.href='transactions.html'">View in Transactions →</button>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+const INDIA_METHODS = [
+  { id:'phonepe', name:'PhonePe', sub:'UPI Payment', icon:'💜' },
+  { id:'upi', name:'UPI', sub:'Any UPI App', icon:'🔵' },
+  { id:'bank_in', name:'Bank Transfer', sub:'IMPS / NEFT / RTGS', icon:'🏦' },
+  { id:'paytm', name:'Paytm', sub:'Paytm Wallet/UPI', icon:'🔷' },
+];
+const NEPAL_METHODS = [
+  { id:'esewa', name:'eSewa', sub:'Mobile Wallet', icon:'🟢' },
+  { id:'fonepay', name:'FonePay', sub:'Banking App', icon:'🔴' },
+  { id:'khalti', name:'Khalti', sub:'Digital Wallet', icon:'🟣' },
+  { id:'bank_np', name:'Bank Transfer', sub:'Nepal Bank / NMB', icon:'🏦' },
+];
+
+const ASSET_FLAGS = { USD:'💵', USDT:'🟢', BTC:'₿', ETH:'Ξ' };
+const ASSET_RATES_NPR = { USD: 133.20, USDT: 133.22, BTC: 9040000, ETH: 469000 };
+const ASSET_RATES_INR = { USD: 83.45, USDT: 83.48, BTC: 5657000, ETH: 293600 };
+
+let selectedAsset = 'USD';
+let selectedMethod = null;
+let inputFocus = 'local'; // 'local' or 'foreign'
+
+function selectAsset(el) {
+  document.querySelectorAll('#assetGroup .pill').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAsset = el.dataset.value;
+  document.getElementById('assetFlag').textContent = ASSET_FLAGS[selectedAsset];
+  document.getElementById('foreignCurrencyLabel').textContent = selectedAsset;
+  updateRate();
+  buildReceivingFields();
+  recalc();
+  updateSummary();
+}
+
+function updateRate() {
+  const user = Auth.getUser();
+  const currency = user?.nationality === 'IN' ? 'INR' : 'NPR';
+  const rates = user?.nationality === 'IN' ? ASSET_RATES_INR : ASSET_RATES_NPR;
+  const rate = rates[selectedAsset] || 133.20;
+  document.getElementById('rateDisplay').textContent = `1 ${selectedAsset} = ${Format.number(rate)} ${currency}`;
+  document.getElementById('sum-rate').textContent = `1 ${selectedAsset} = ${Format.number(rate)} ${currency}`;
+}
+
+function calcFromLocal() {
+  inputFocus = 'local';
+  recalc();
+  updateSummary();
+}
+function calcFromForeign() {
+  inputFocus = 'foreign';
+  recalc();
+  updateSummary();
+}
+function recalc() {
+  const user = Auth.getUser();
+  const rates = user?.nationality === 'IN' ? ASSET_RATES_INR : ASSET_RATES_NPR;
+  const rate = rates[selectedAsset] || 133.20;
+  const localInput = document.getElementById('localAmount');
+  const foreignInput = document.getElementById('foreignAmount');
+
+  if (inputFocus === 'local' && localInput.value) {
+    const foreign = parseFloat(localInput.value) / rate;
+    foreignInput.value = foreign > 0 ? foreign.toFixed(selectedAsset === 'BTC' ? 6 : 2) : '';
+  } else if (inputFocus === 'foreign' && foreignInput.value) {
+    const local = parseFloat(foreignInput.value) * rate;
+    localInput.value = local > 0 ? local.toFixed(2) : '';
+  }
+}
+
+function swapInputs() {
+  const l = document.getElementById('localAmount');
+  const f = document.getElementById('foreignAmount');
+  [l.value, f.value] = [f.value, l.value];
+  inputFocus = inputFocus === 'local' ? 'foreign' : 'local';
+  recalc();
+}
+
+function updateSummary() {
+  const l = document.getElementById('localAmount').value;
+  const f = document.getElementById('foreignAmount').value;
+  const user = Auth.getUser();
+  const currency = user?.nationality === 'IN' ? 'INR' : 'NPR';
+  document.getElementById('sum-asset').textContent = selectedAsset;
+  document.getElementById('sum-pay').textContent = l ? `${currency} ${Format.number(parseFloat(l))}` : '—';
+  document.getElementById('sum-receive').textContent = f ? `${f} ${selectedAsset}` : '—';
+  document.getElementById('sum-method').textContent = selectedMethod ? selectedMethod.name : '—';
+}
+
+function buildPaymentMethods() {
+  const user = Auth.getUser();
+  const methods = user?.nationality === 'IN' ? INDIA_METHODS : NEPAL_METHODS;
+  const container = document.getElementById('paymentMethods');
+  container.innerHTML = methods.map(m => `
+    <div class="method-card" data-id="${m.id}" onclick="selectMethod(this,'${m.id}','${m.name}')">
+      <span class="method-icon">${m.icon}</span>
+      <div><div class="method-name">${m.name}</div><div class="method-sub">${m.sub}</div></div>
+      <div class="check-mark">✓</div>
+    </div>`).join('');
+
+  const user2 = Auth.getUser();
+  const currency = user2?.nationality === 'IN' ? 'INR' : 'NPR';
+  document.getElementById('localCurrencyLabel').textContent = currency;
+  document.getElementById('localFlag').textContent = user2?.nationality === 'IN' ? '🇮🇳' : '🇳🇵';
+  updateRate();
+}
+
+function selectMethod(el, id, name) {
+  document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedMethod = { id, name };
+  document.getElementById('method-err').classList.remove('visible');
+  updateSummary();
+}
+
+function buildReceivingFields() {
+  const container = document.getElementById('receivingFields');
+  const desc = document.getElementById('receivingDesc');
+  if (['USD','USDT'].includes(selectedAsset)) {
+    desc.textContent = 'Enter your bank or wallet details to receive USD/USDT.';
+    container.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Receiving Method <span>*</span></label>
+        <select class="form-control" id="receiveMethod">
+          <option value="">Select how to receive</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="wallet">USDT Wallet Address (TRC20/ERC20)</option>
+        </select>
+      </div>
+      <div class="form-group" id="receiveDetailGroup">
+        <label class="form-label">Bank Account / Wallet Address <span>*</span></label>
+        <input type="text" class="form-control" id="receiveDetail" placeholder="Account number or wallet address" />
+      </div>
+      <div class="form-group" id="ifscGroup" style="display:none;">
+        <label class="form-label">IFSC / SWIFT Code</label>
+        <input type="text" class="form-control" id="ifscCode" placeholder="e.g. SBIN0001234" />
+      </div>`;
+  } else {
+    const coins = { BTC: 'Bitcoin (BTC)', ETH: 'Ethereum (ETH)' };
+    desc.textContent = `Enter your ${coins[selectedAsset]} wallet address.`;
+    container.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">${coins[selectedAsset]} Wallet Address <span>*</span></label>
+        <input type="text" class="form-control" id="receiveDetail" placeholder="Your ${selectedAsset} wallet address" />
+        <div class="form-hint">Double-check your address. Crypto transfers are irreversible.</div>
+      </div>`;
+  }
+}
+
+function proceedToPayment() {
+  const localAmt = document.getElementById('localAmount').value;
+  const foreignAmt = document.getElementById('foreignAmount').value;
+  const errEl = document.getElementById('amount-err');
+
+  if (!localAmt || parseFloat(localAmt) <= 0) {
+    errEl.textContent = 'Please enter the amount you want to pay.';
+    errEl.classList.add('visible');
+    return;
+  }
+  errEl.classList.remove('visible');
+
+  if (!selectedMethod) {
+    document.getElementById('method-err').textContent = 'Please select a payment method.';
+    document.getElementById('method-err').classList.add('visible');
+    return;
+  }
+
+  const user = Auth.getUser();
+  if (user?.kycStatus !== 'verified') {
+    Toast.error('KYC Required', 'Please complete identity verification before making transactions.');
+    setTimeout(() => window.location.href = 'kyc.html', 1000);
+    return;
+  }
+
+  const currency = user.nationality === 'IN' ? 'INR' : 'NPR';
+  // Build admin payment details (mock)
+  const adminDetails = {
+    esewa: { type:'eSewa', id:'9801234567', name:'NexVault Exchange' },
+    fonepay: { type:'FonePay', id:'01-4234567', name:'NexVault Exchange' },
+    khalti: { type:'Khalti', id:'9841234567', name:'NexVault Exchange' },
+    bank_np: { type:'Bank Transfer', id:'0070101000123456', name:'NexVault Exchange Pvt Ltd', bank:'Nepal Bank Limited', branch:'Kathmandu' },
+    phonepe: { type:'PhonePe/UPI', id:'nexvault@ybl', name:'NexVault Exchange' },
+    upi: { type:'UPI', id:'nexvault@okhdfc', name:'NexVault Exchange' },
+    bank_in: { type:'Bank Transfer', id:'1234567890', name:'NexVault Exchange Pvt Ltd', bank:'HDFC Bank', ifsc:'HDFC0001234' },
+    paytm: { type:'Paytm', id:'9801234567', name:'NexVault Exchange' },
+  };
+  const detail = adminDetails[selectedMethod.id] || { type: selectedMethod.name, id: 'Contact admin', name: 'NexVault' };
+
+  document.getElementById('adminPayDetails').innerHTML = `
+    <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:24px;">💳</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);">Send via ${detail.type}</div>
+        <div style="font-size:12px;color:var(--text-muted);">Send exact amount only</div>
+      </div>
+    </div>
+    <div style="background:var(--surface-3);border-radius:var(--radius-md);padding:14px;display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Account Name</span><strong>${detail.name}</strong></div>
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">${detail.type} ID</span><strong style="font-family:'DM Mono',monospace;">${detail.id}</strong></div>
+      ${detail.bank ? `<div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Bank</span><strong>${detail.bank}</strong></div>` : ''}
+      ${detail.branch ? `<div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Branch</span><strong>${detail.branch}</strong></div>` : ''}
+      ${detail.ifsc ? `<div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">IFSC</span><strong>${detail.ifsc}</strong></div>` : ''}
+    </div>
+    <div style="margin-top:14px;padding:12px 16px;background:var(--gold-glow);border:1px solid var(--border-gold);border-radius:var(--radius-md);display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:13px;color:var(--text-muted);">Exact Amount to Send</span>
+      <span style="font-size:22px;font-weight:800;font-family:'DM Mono',monospace;color:var(--gold-400);">${currency} ${Format.number(parseFloat(localAmt))}</span>
+    </div>`;
+
+  Modal.open('paymentModal');
+}
+
+async function submitPayment() {
+  if (!document.getElementById('ssFile').files[0]) {
+    document.getElementById('ss-err').textContent = 'Please upload your payment screenshot.';
+    document.getElementById('ss-err').classList.add('visible');
+    return;
+  }
+  document.getElementById('ss-err').classList.remove('visible');
+
+  const btn = document.getElementById('submitPayBtn');
+  btn.innerHTML = '<div class="spinner"></div> Submitting...';
+  btn.disabled = true;
+
+  await new Promise(r => setTimeout(r, 1800));
+
+  Modal.close('paymentModal');
+  const txId = Format.txId();
+  const user = Auth.getUser();
+  const currency = user?.nationality === 'IN' ? 'INR' : 'NPR';
+  const localAmt = document.getElementById('localAmount').value;
+  const foreignAmt = document.getElementById('foreignAmount').value;
+
+  document.getElementById('txConfirmDetails').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Transaction ID</span><span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;">${txId}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">You Sent</span><span style="font-size:13px;font-weight:700;">${currency} ${Format.number(parseFloat(localAmt))}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">You Receive</span><span style="font-size:13px;font-weight:700;color:var(--emerald);">${foreignAmt} ${selectedAsset}</span></div>
+      <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:var(--text-muted);">Status</span><span class="badge badge-amber">⏳ Awaiting Verification</span></div>
+    </div>`;
+  Modal.open('confirmModal');
+}
+
+function handleFileChange(inputId, previewId, areaId) {
+  const input = document.getElementById(inputId);
+  const preview = document.getElementById(previewId);
+  const area = document.getElementById(areaId);
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const size = file.size > 1048576 ? `${(file.size/1048576).toFixed(1)} MB` : `${(file.size/1024).toFixed(0)} KB`;
+  preview.innerHTML = `<div class="file-preview"><span class="file-icon">🖼️</span><div><div class="file-name">${file.name}</div><div class="file-size">${size}</div></div></div>`;
+  area.style.display = 'none';
+}
+
+onReady(() => {
+  Auth.requireAuth();
+  initAppShell('buy', 'Buy USD / Crypto', 'Exchange local currency for digital assets');
+  buildPaymentMethods();
+  buildReceivingFields();
+});
+</script>
+</body>
+</html>

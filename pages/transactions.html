@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions — NexVault</title>
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/layout.css" />
+  <style>
+    .filters-bar { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px; padding:16px; margin-bottom:24px; }
+    .filter-select { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-200); padding:8px 12px; border-radius:8px; font-size:13px; min-width:130px; }
+    .filter-select:focus { outline:none; border-color:var(--gold-500); }
+    .filter-input { background:var(--navy-700); border:1px solid var(--navy-600); color:var(--slate-200); padding:8px 14px; border-radius:8px; font-size:13px; min-width:180px; }
+    .filter-input::placeholder { color:var(--slate-500); }
+    .filter-input:focus { outline:none; border-color:var(--gold-500); }
+    .filters-actions { margin-left:auto; display:flex; gap:8px; }
+    .tx-table-wrap { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:16px; overflow:hidden; }
+    .tx-table { width:100%; border-collapse:collapse; }
+    .tx-table th { background:var(--navy-900); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--slate-400); padding:12px 16px; text-align:left; border-bottom:1px solid var(--navy-700); white-space:nowrap; }
+    .tx-table td { padding:14px 16px; border-bottom:1px solid var(--navy-700); font-size:13px; color:var(--slate-300); vertical-align:middle; }
+    .tx-table tr:last-child td { border-bottom:none; }
+    .tx-table tr:hover td { background:var(--navy-700); }
+    .tx-type-chip { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; display:inline-block; white-space:nowrap; }
+    .tx-type-chip.buy { background:rgba(16,185,129,.15); color:var(--emerald); }
+    .tx-type-chip.sell { background:rgba(239,68,68,.15); color:var(--rose); }
+    .tx-type-chip.card { background:rgba(212,163,66,.15); color:var(--gold-400); }
+    .status-chip { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; }
+    .status-chip.completed { background:rgba(16,185,129,.15); color:var(--emerald); }
+    .status-chip.pending { background:rgba(245,158,11,.15); color:var(--amber); }
+    .status-chip.rejected { background:rgba(239,68,68,.15); color:var(--rose); }
+    .mono { font-family:'DM Mono',monospace; }
+    .tx-action-btn { background:var(--navy-700); border:none; padding:5px 10px; border-radius:6px; color:var(--slate-300); font-size:11px; cursor:pointer; transition:background .15s; white-space:nowrap; }
+    .tx-action-btn:hover { background:var(--navy-600); color:var(--gold-400); }
+    .pagination { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-top:1px solid var(--navy-700); flex-wrap:wrap; gap:10px; }
+    .page-info { font-size:13px; color:var(--slate-400); }
+    .page-btns { display:flex; gap:6px; }
+    .page-btn { background:var(--navy-700); border:none; padding:6px 12px; border-radius:8px; color:var(--slate-300); font-size:13px; cursor:pointer; transition:background .15s; }
+    .page-btn:hover { background:var(--navy-600); }
+    .page-btn.active { background:var(--gold-500); color:var(--navy-950); font-weight:700; }
+    .empty-state { text-align:center; padding:60px 20px; }
+    .empty-icon { font-size:48px; margin-bottom:12px; }
+    .tx-stats-row { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:14px; margin-bottom:24px; }
+    .tx-stat-mini { background:var(--navy-800); border:1px solid var(--navy-600); border-radius:12px; padding:16px; }
+    .tx-stat-label { font-size:11px; color:var(--slate-500); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+    .tx-stat-value { font-family:'DM Mono',monospace; font-size:20px; font-weight:700; color:var(--slate-100); }
+    .invoice-modal-body { padding:24px; }
+    .invoice-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+    .invoice-logo { font-size:20px; font-weight:800; color:var(--gold-400); letter-spacing:-0.5px; }
+    .invoice-meta { text-align:right; font-size:12px; color:var(--slate-400); }
+    .invoice-section { margin-bottom:20px; }
+    .invoice-section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--slate-500); margin-bottom:8px; }
+    .invoice-row { display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px solid var(--navy-700); }
+    .invoice-row:last-child { border-bottom:none; }
+    .invoice-total-row { display:flex; justify-content:space-between; font-size:15px; font-weight:700; padding:10px 0; border-top:2px solid var(--gold-500); color:var(--gold-400); font-family:'DM Mono',monospace; }
+    @media (max-width:768px) { .tx-table th:nth-child(3), .tx-table td:nth-child(3) { display:none; } .tx-table th:nth-child(5), .tx-table td:nth-child(5) { display:none; } }
+    @media (max-width:480px) { .tx-table th:nth-child(4), .tx-table td:nth-child(4) { display:none; } }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content" id="pageContent">
+
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;">
+        <div>
+          <h1>Transactions</h1>
+          <p>Your complete exchange history.</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+          <button class="btn btn-outline btn-sm" onclick="exportXLSX()">⬇ Export Excel</button>
+        </div>
+      </div>
+
+      <!-- Stats Summary -->
+      <div class="tx-stats-row" id="txStatsRow"></div>
+
+      <!-- Filters -->
+      <div class="filters-bar">
+        <select class="filter-select" id="filterType" onchange="applyFilters()">
+          <option value="">All Types</option>
+          <option value="buy">Buy</option>
+          <option value="sell">Sell</option>
+          <option value="card">Virtual Card</option>
+        </select>
+        <select class="filter-select" id="filterStatus" onchange="applyFilters()">
+          <option value="">All Status</option>
+          <option value="completed">Completed</option>
+          <option value="pending">Pending</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <input type="text" class="filter-input" id="filterSearch" placeholder="🔍 Search by ID or asset…" oninput="applyFilters()" />
+        <div class="filters-actions">
+          <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="tx-table-wrap">
+        <div style="overflow-x:auto;">
+          <table class="tx-table">
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Type</th>
+                <th>Asset</th>
+                <th>Amount</th>
+                <th>Rate</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="txTableBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state hidden">
+          <div class="empty-icon">📭</div>
+          <p style="color:var(--slate-400);">No transactions found.</p>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Invoice Modal -->
+<div class="modal-overlay hidden" id="invoiceModal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h3>Transaction Invoice</h3>
+      <button class="modal-close" onclick="Modal.close('invoiceModal')">✕</button>
+    </div>
+    <div class="modal-body invoice-modal-body" id="invoiceContent">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="printInvoice()">🖨 Print Invoice</button>
+      <button class="btn btn-outline" onclick="Modal.close('invoiceModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/utils.js"></script>
+<script src="../js/sidebar.js"></script>
+<script>
+  initAppShell('transactions', 'Transactions', 'Your exchange history');
+
+  const PAGE_SIZE = 10;
+  let allTx = [];
+  let filtered = [];
+  let currentPage = 1;
+
+  const MOCK_TX = [
+    { id: 'NXV-2025-001', type: 'buy', asset: 'USD', amount: 100, rate: 133.20, localAmount: 13320, currency: 'NPR', method: 'eSewa', status: 'completed', date: '2025-11-15T09:23:00Z' },
+    { id: 'NXV-2025-002', type: 'sell', asset: 'USDT', amount: 50, rate: 133.10, localAmount: 6655, currency: 'NPR', method: 'Khalti', status: 'completed', date: '2025-11-18T14:40:00Z' },
+    { id: 'NXV-2025-003', type: 'buy', asset: 'BTC', amount: 0.001, rate: 67842, localAmount: 67.84, currency: 'USD', method: 'FonePay', status: 'pending', date: '2025-11-20T11:10:00Z' },
+    { id: 'NXV-2025-004', type: 'card', asset: 'VISA $25', amount: 25, rate: 1, localAmount: 28, currency: 'USD', method: 'eSewa', status: 'completed', date: '2025-11-22T16:05:00Z' },
+    { id: 'NXV-2025-005', type: 'buy', asset: 'ETH', amount: 0.02, rate: 3521, localAmount: 70.42, currency: 'USD', method: 'Bank', status: 'rejected', date: '2025-11-23T08:00:00Z' },
+    { id: 'NXV-2025-006', type: 'sell', asset: 'USD', amount: 200, rate: 132.90, localAmount: 26580, currency: 'NPR', method: 'FonePay', status: 'completed', date: '2025-11-25T13:30:00Z' },
+    { id: 'NXV-2025-007', type: 'buy', asset: 'USD', amount: 300, rate: 133.50, localAmount: 40050, currency: 'NPR', method: 'Khalti', status: 'pending', date: '2025-11-26T10:00:00Z' },
+    { id: 'NXV-2025-008', type: 'card', asset: 'VISA $50', amount: 50, rate: 1, localAmount: 54, currency: 'USD', method: 'eSewa', status: 'pending', date: '2025-11-27T09:15:00Z' },
+  ];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    Auth.requireAuth();
+    const stored = JSON.parse(localStorage.getItem('nv_transactions') || '[]');
+    allTx = [...MOCK_TX, ...stored].sort((a, b) => new Date(b.date) - new Date(a.date));
+    filtered = [...allTx];
+    renderStats();
+    renderTable();
+  });
+
+  function renderStats() {
+    const completed = allTx.filter(t => t.status === 'completed');
+    const pending = allTx.filter(t => t.status === 'pending');
+    const totalBought = allTx.filter(t => t.type === 'buy' && t.status === 'completed').reduce((s,t) => s + t.amount, 0);
+    const totalSold = allTx.filter(t => t.type === 'sell' && t.status === 'completed').reduce((s,t) => s + t.amount, 0);
+    document.getElementById('txStatsRow').innerHTML = `
+      <div class="tx-stat-mini"><div class="tx-stat-label">Total Transactions</div><div class="tx-stat-value">${allTx.length}</div></div>
+      <div class="tx-stat-mini"><div class="tx-stat-label">Completed</div><div class="tx-stat-value" style="color:var(--emerald);">${completed.length}</div></div>
+      <div class="tx-stat-mini"><div class="tx-stat-label">Pending</div><div class="tx-stat-value" style="color:var(--amber);">${pending.length}</div></div>
+      <div class="tx-stat-mini"><div class="tx-stat-label">Total Bought (USD)</div><div class="tx-stat-value">$${totalBought.toFixed(2)}</div></div>
+      <div class="tx-stat-mini"><div class="tx-stat-label">Total Sold (USD)</div><div class="tx-stat-value">$${totalSold.toFixed(2)}</div></div>
+    `;
+  }
+
+  function applyFilters() {
+    const type = document.getElementById('filterType').value;
+    const status = document.getElementById('filterStatus').value;
+    const search = document.getElementById('filterSearch').value.toLowerCase();
+    filtered = allTx.filter(t => {
+      if (type && t.type !== type) return false;
+      if (status && t.status !== status) return false;
+      if (search && !t.id.toLowerCase().includes(search) && !t.asset.toLowerCase().includes(search)) return false;
+      return true;
+    });
+    currentPage = 1;
+    renderTable();
+  }
+
+  function clearFilters() {
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterStatus').value = '';
+    document.getElementById('filterSearch').value = '';
+    filtered = [...allTx];
+    currentPage = 1;
+    renderTable();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('txTableBody');
+    const total = filtered.length;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page = filtered.slice(start, start + PAGE_SIZE);
+
+    if (!total) {
+      tbody.innerHTML = '';
+      document.getElementById('emptyState').classList.remove('hidden');
+      document.getElementById('pagination').innerHTML = '';
+      return;
+    }
+    document.getElementById('emptyState').classList.add('hidden');
+
+    tbody.innerHTML = page.map(t => `
+      <tr>
+        <td><span class="mono" style="font-size:12px;">${t.id}</span></td>
+        <td><span class="tx-type-chip ${t.type}">${t.type === 'buy' ? '↓ Buy' : t.type === 'sell' ? '↑ Sell' : '💳 Card'}</span></td>
+        <td style="font-weight:600;">${t.asset}</td>
+        <td class="mono">${t.type === 'card' ? '$'+t.amount : t.amount + ' ' + t.asset}</td>
+        <td class="mono" style="font-size:12px;">${t.rate > 10 ? t.currency + ' ' + t.rate.toLocaleString() : '$'+t.rate}</td>
+        <td style="font-size:12px;">${Format.date(t.date)}</td>
+        <td><span class="status-chip ${t.status}">${t.status === 'completed' ? '✓ Completed' : t.status === 'pending' ? '⏳ Pending' : '✕ Rejected'}</span></td>
+        <td>
+          <button class="tx-action-btn" onclick="openInvoice('${t.id}')">Invoice</button>
+        </td>
+      </tr>
+    `).join('');
+
+    // Pagination
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const paginationEl = document.getElementById('pagination');
+    let pageHTML = `<span class="page-info">Showing ${start+1}–${Math.min(start+PAGE_SIZE,total)} of ${total}</span><div class="page-btns">`;
+    pageHTML += `<button class="page-btn" onclick="changePage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      if (totalPages <= 7 || i === 1 || i === totalPages || Math.abs(i - currentPage) <= 1) {
+        pageHTML += `<button class="page-btn ${i===currentPage?'active':''}" onclick="changePage(${i})">${i}</button>`;
+      } else if (Math.abs(i - currentPage) === 2) {
+        pageHTML += `<span style="color:var(--slate-500);padding:0 4px;">…</span>`;
+      }
+    }
+    pageHTML += `<button class="page-btn" onclick="changePage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button></div>`;
+    paginationEl.innerHTML = pageHTML;
+  }
+
+  function changePage(n) {
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    if (n < 1 || n > totalPages) return;
+    currentPage = n;
+    renderTable();
+  }
+
+  function openInvoice(txId) {
+    const tx = allTx.find(t => t.id === txId);
+    if (!tx) return;
+    const user = Auth.getUser();
+    document.getElementById('invoiceContent').innerHTML = `
+      <div class="invoice-header">
+        <div>
+          <div class="invoice-logo">NexVault</div>
+          <div style="font-size:12px;color:var(--slate-500);margin-top:4px;">Digital Exchange Platform</div>
+        </div>
+        <div class="invoice-meta">
+          <div><strong>Invoice #</strong> ${tx.id}</div>
+          <div><strong>Date:</strong> ${Format.date(tx.date)}</div>
+          <div style="margin-top:4px;"><span class="status-chip ${tx.status}">${tx.status}</span></div>
+        </div>
+      </div>
+      <div class="invoice-section">
+        <div class="invoice-section-title">Bill To</div>
+        <div class="invoice-row"><span>Name</span><span>${user?.fullName || 'N/A'}</span></div>
+        <div class="invoice-row"><span>Email</span><span>${user?.email || 'N/A'}</span></div>
+        <div class="invoice-row"><span>Nationality</span><span>${user?.nationality || 'N/A'}</span></div>
+        <div class="invoice-row"><span>User ID</span><span class="mono">${user?.username || 'N/A'}</span></div>
+      </div>
+      <div class="invoice-section">
+        <div class="invoice-section-title">Transaction Details</div>
+        <div class="invoice-row"><span>Type</span><span>${tx.type.toUpperCase()}</span></div>
+        <div class="invoice-row"><span>Asset</span><span>${tx.asset}</span></div>
+        <div class="invoice-row"><span>Amount</span><span class="mono">${tx.amount} ${tx.type !== 'card' ? tx.asset : 'USD'}</span></div>
+        <div class="invoice-row"><span>Exchange Rate</span><span class="mono">${tx.rate > 10 ? tx.currency + ' ' + tx.rate.toLocaleString() : '$' + tx.rate}</span></div>
+        <div class="invoice-row"><span>Payment Method</span><span>${tx.method}</span></div>
+        <div class="invoice-row"><span>Local Amount</span><span class="mono">${tx.currency} ${tx.localAmount.toLocaleString()}</span></div>
+      </div>
+      <div class="invoice-total-row">
+        <span>Total</span>
+        <span>${tx.currency} ${tx.localAmount.toLocaleString()}</span>
+      </div>
+      <p style="font-size:11px;color:var(--slate-500);margin-top:16px;">This invoice is auto-generated by NexVault. For disputes, contact support@nexvault.com with this invoice ID.</p>
+    `;
+    Modal.open('invoiceModal');
+  }
+
+  function printInvoice() {
+    window.print();
+  }
+
+  function exportCSV() {
+    const headers = ['ID','Type','Asset','Amount','Rate','Currency','Local Amount','Method','Status','Date'];
+    const rows = filtered.map(t => [t.id, t.type, t.asset, t.amount, t.rate, t.currency, t.localAmount, t.method, t.status, Format.date(t.date)]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    download('nexvault-transactions.csv', 'text/csv', csv);
+    Toast.success('Exported', 'CSV file downloaded.');
+  }
+
+  function exportXLSX() {
+    // Simplified tab-separated export (real XLSX requires library)
+    const headers = ['ID\tType\tAsset\tAmount\tRate\tCurrency\tLocal Amount\tMethod\tStatus\tDate'];
+    const rows = filtered.map(t => `${t.id}\t${t.type}\t${t.asset}\t${t.amount}\t${t.rate}\t${t.currency}\t${t.localAmount}\t${t.method}\t${t.status}\t${Format.date(t.date)}`);
+    const content = [headers, ...rows].join('\n');
+    download('nexvault-transactions.xls', 'application/vnd.ms-excel', content);
+    Toast.success('Exported', 'Excel file downloaded.');
+  }
+
+  function download(filename, mime, content) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+    a.download = filename;
+    a.click();
+  }
+</script>
+</body>
+</html>
